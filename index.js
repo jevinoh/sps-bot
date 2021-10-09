@@ -296,7 +296,11 @@ async function startBotPlayMatch(page) {
 
 // 30 MINUTES INTERVAL BETWEEN EACH MATCH (if not specified in the .env file)
 const sleepingTimeInMinutes = process.env.MINUTES_BATTLES_INTERVAL || 30;
-const sleepingTime = sleepingTimeInMinutes * 60000;
+const sleepingTimeNormal = sleepingTimeInMinutes * 60000;
+const sleepingTimeRetryInMinutes = process.env.RETRY_TIME_INTERVAL || 5;;
+const sleepingTimeRetry = sleepingTimeRetryInMinutes * 60000;
+
+sleepingTime = sleepingTimeNormal;
 const isHeadlessMode = process.env.HEADLESS === 'false' ? false : true; 
 
 
@@ -368,15 +372,18 @@ const blockedResources = [
         try {
             await startBotPlayMatch(page)
                 .then(() => {
-                    console.log('Closing battle', new Date().toLocaleString());        
+                    console.log('Closing battle', new Date().toLocaleString());
+                    sleepingTime = sleepingTimeNormal;    
                 })
                 .catch((e) => {
                     console.log(e)
+                    sleepingTime = sleepingTimeRetry;
                 })
             await page.waitForTimeout(5000);
             
         } catch (e) {
             console.log('Routine error at: ', new Date().toLocaleString(), e)
+            sleepingTime = sleepingTimeRetry;
         }
         await console.log(process.env.ACCOUNT,'waiting for the next battle in', sleepingTime / 1000 / 60 , ' minutes at ', new Date(Date.now() +sleepingTime).toLocaleString() )
         await new Promise(r => setTimeout(r, sleepingTime));
