@@ -112,6 +112,15 @@ async function startBotPlayMatch(page, myCards, quest) {
         const ecr = await getElementTextByXpath(page, "//div[@class='dec-options'][1]/div[@class='value'][2]/div", 100);
         if(ecr) {
             console.log(chalk.bold.whiteBright.bgMagenta('Your current Energy Capture Rate is ' + ecr.split('.')[0] + "%"));
+            if(ecr.split('.')[0] < limitCaptureRate)
+            {
+                additionalTimeout = limitCaptureRateRetry;
+            }
+            else
+            {
+                additionalTimeout = 0;
+            }
+
         }
         console.log('waiting for battle button...')
         await page.waitForXPath("//button[contains(., 'BATTLE')]", { timeout: 20000 })
@@ -248,8 +257,16 @@ const sleepingTimeNormal = sleepingTimeInMinutes * 60000;
 const sleepingTimeRetryInMinutes = process.env.RETRY_TIME_INTERVAL || 5;;
 const sleepingTimeRetry = sleepingTimeRetryInMinutes * 60000;
 
-sleepingTime = sleepingTimeNormal;
+var sleepingTime = sleepingTimeNormal;
 const isHeadlessMode = process.env.HEADLESS === 'false' ? false : true; 
+
+// Capture rate is at 70% by default, default interval for additional timeout when it reaches below
+// capture rate is 45 minutes
+const limitCaptureRate = process.env.LIMIT_CAPTURE_RATE || 70;
+const limitCaptureRateRetryMinutes = process.env.LIMIT_CAPTURE_RATE_RETRY_INTERVAL || 45;
+const limitCaptureRateRetry = limitCaptureRateRetryMinutes * 60000;
+
+var additionalTimeout = 0;
 
 
 
@@ -287,13 +304,18 @@ const isHeadlessMode = process.env.HEADLESS === 'false' ? false : true;
                 .catch((e) => {
                     console.log(e)
                     sleepingTime = sleepingTimeRetry;
+                    additionalTimeout = 0;
                 })
             await page.waitForTimeout(5000);
             await browser.close();
         } catch (e) {
             console.log('Routine error at: ', new Date().toLocaleString(), e)
             sleepingTime = sleepingTimeRetry;
+            additionalTimeout = 0;
         }
+
+        sleepingTime = sleepingTime + additionalTimeout;
+
         await console.log(process.env.ACCOUNT,'waiting for the next battle in', sleepingTime / 1000 / 60 , ' minutes at ', new Date(Date.now() +sleepingTime).toLocaleString() )
         await new Promise(r => setTimeout(r, sleepingTime));
     }
