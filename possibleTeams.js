@@ -87,6 +87,10 @@ const getBattlesWithRuleset = (ruleset, mana, summoners) => {
 }
 
 const battlesFilterByManacap = async (mana, ruleset, summoners) => {
+
+    // TODO: disable this API call for now, no usage because we don't have any access to it
+    //       WE MIGHT NEED to create our own API
+    /*
     const history = await getBattlesWithRuleset(ruleset, mana, summoners);
     if (history) {
         console.log('API battles returned ', history.length)
@@ -96,8 +100,9 @@ const battlesFilterByManacap = async (mana, ruleset, summoners) => {
                 (ruleset ? battle.ruleset === ruleset : true)
         )
     }
-    const backupLength = historyBackup && historyBackup.length
     console.log('API battles did not return ', history)
+    */
+    const backupLength = historyBackup && historyBackup.length
     console.log('Using Backup ', backupLength)
     
     return historyBackup.filter(
