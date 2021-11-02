@@ -65,6 +65,34 @@ async function startBotPlayMatch(page, myCards, quest) {
     await page.waitForTimeout(8000);
     await closePopups(page);
 
+
+    await page.goto('https://splinterlands.com/?p=card_details&id=280&gold=true&edition=3&tab=');
+    await page.waitForTimeout(8000);
+
+    // let cardItem = await page.waitForSelector('#check > G3-280-H629IGLBGW', {
+    //     visible: true,
+    //   })
+    //   .then(res => res)
+    //   .catch(()=> console.log('Unable to view G3-280-H629IGLBGW'))
+
+    // if (cardItem != undefined)
+    // {
+    //     console.log('Viewing cards for delegation')
+    //     await splinterlandsPage.delegateCard(page, 'jevin04').catch(e=>{
+    //         console.log(e);
+    //         throw new Error('Unable to view the card');
+    //     });
+    // }
+
+    console.log('Viewing cards for delegation')
+    await splinterlandsPage.delegateCard(page, 'jevin04').catch(e=>{
+        console.log(e);
+        throw new Error('Unable to view the card');
+    });
+
+    await page.goto('https://splinterlands.io/');
+    await page.waitForTimeout(8000);
+
     await page.click('#menu_item_battle').then(()=>console.log('Entered...')).catch(e=>console.log('Battle Button not available'));
     await closePopups(page);
     await page.waitForTimeout(3000);
@@ -163,7 +191,8 @@ async function startBotPlayMatch(page, myCards, quest) {
 
     }
     await page.waitForTimeout(10000);
-    let [mana, rules, splinters] = await Promise.all([
+    let [counterSplinter, mana, rules, splinters] = await Promise.all([
+        splinterlandsPage.checkOpponentBattleHistory(page).then((counterSplinter) => counterSplinter).catch(() => 'unable to find counter to opponent splinter'),
         splinterlandsPage.checkMatchMana(page).then((mana) => mana).catch(() => 'no mana'),
         splinterlandsPage.checkMatchRules(page).then((rulesArray) => rulesArray).catch(() => 'no rules'),
         splinterlandsPage.checkMatchActiveSplinters(page).then((splinters) => splinters).catch(() => 'no splinters')
@@ -176,6 +205,8 @@ async function startBotPlayMatch(page, myCards, quest) {
         myCards: myCards
     }
     await page.waitForTimeout(2000);
+    console.log('Opponent is ', opponent);
+
     const possibleTeams = await ask.possibleTeams(matchDetails).catch(e=>console.log('Error from possible team API call: ',e));
 
     if (possibleTeams && possibleTeams.length) {
@@ -269,7 +300,6 @@ const limitCaptureRateRetry = limitCaptureRateRetryMinutes * 60000;
 var additionalTimeout = 0;
 
 
-
 (async () => {
     while (true) {
         console.log(chalk.bold.redBright.bgBlack('Dont pay scammers!'));
@@ -279,8 +309,17 @@ var additionalTimeout = 0;
             console.log('START ', process.env.ACCOUNT, new Date().toLocaleString())
             const browser = await puppeteer.launch({
                 headless: isHeadlessMode,
-                args: ['--no-sandbox']
-            }); // default is true
+                args: [
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-accelerated-2d-canvas',
+                    '--no-first-run',
+                    '--no-zygote',
+                    '--single-process', // <- this one doesn't works in Windows
+                    '--disable-gpu'
+                  ]
+                  });// default is true
             const page = await browser.newPage();
             await page.setDefaultNavigationTimeout(500000);
             await page.on('dialog', async dialog => {
