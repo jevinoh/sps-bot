@@ -380,7 +380,7 @@ async function startBotPlayMatch(page, account, password) {
     }
     
     //TEAM SELECTION
-    const teamToPlay = await ask.teamSelection(possibleTeams, matchDetails, quest);
+    const teamToPlay = await ask.teamSelection(possibleTeams, matchDetails, quest, page.favouriteDeck);
 
     if (teamToPlay) {
         page.click('.btn--create-team')[0];
@@ -398,8 +398,9 @@ async function startBotPlayMatch(page, account, password) {
                 page.waitForXPath(`//div[@card_detail_id="${teamToPlay.summoner}"]`, { timeout: 10000 }).then(summonerButton => summonerButton.click())
             });
         if (card.color(teamToPlay.cards[0]) === 'Gold') {
-            console.log('Dragon play TEAMCOLOR', teamActualSplinterToPlay(teamToPlay.cards.slice(0, 6)))
-            await page.waitForXPath(`//div[@data-original-title="${teamActualSplinterToPlay(teamToPlay.cards.slice(0, 6))}"]`, { timeout: 8000 })
+            const playTeamColor = teamActualSplinterToPlay(teamToPlay.cards.slice(0, 6)) || matchDetails.splinters[0]
+            console.log('Dragon play TEAMCOLOR', playTeamColor)
+            await page.waitForXPath(`//div[@data-original-title="${playTeamColor}"]`, { timeout: 8000 })
                 .then(selector => selector.click())
         }
         await page.waitForTimeout(5000);
@@ -532,6 +533,7 @@ const blockedResources = [
         deviceScaleFactor: 1,
     });
 
+    page.favouriteDeck = process.env.FAVOURITE_DECK || '';
     while (true) {
         console.log(chalk.bold.redBright.bgBlack('Dont pay scammers!'));
         console.log(chalk.bold.whiteBright.bgBlack('If you need support for the bot, join the telegram group https://t.me/splinterlandsbot and discord https://discord.gg/bR6cZDsFSX'));
