@@ -34,6 +34,35 @@ async function login(page) {
     }
 }
 
+async function logout(page, account) {
+    try {
+
+        page.waitForSelector('#log_in_text').then(() => page.click('#log_in_text'));
+        // let element1 = await page.waitForSelector('.dropdown-menu > li:nth-child(1) > a').then(() => page.click('.dropdown-menu > li:nth-child(1) > a'));
+        let element1 = await page.waitForSelector('.dropdown-menu > li:nth-child(1) > a')
+        // let element2 = await page.waitForSelector('#log_in_text > dropdown-menu > li:nth-child(2) > a')
+        // let element3 = await page.waitForSelector('#log_in_text > dropdown-menu > li:nth-child(3) > a')
+        // let element4 = await page.waitForSelector('#log_in_text > .dropdown-menu > li:nth-child(4) > a')
+        // let element9 = await page.waitForSelector('#log_in_text > .dropdown-menu > li:nth-child(9) > a')
+        // let element10 = await page.waitForSelector('#log_in_text > .dropdown-menu > li:nth-child(10) > a')
+        page.waitForSelector('.dropdown-menu > li:nth-child(10) > a').then(() => page.click('.dropdown-menu > li:nth-child(10) > a'));
+
+        console.log(element1 ? 'Has element1!' : 'Failed to get element1');
+        // console.log(element2 ? 'Has element2!' : 'Failed to get element2');
+        // console.log(element3 ? 'Has element3!' : 'Failed to get element3');
+        // console.log(element4 ? 'Has element4!' : 'Failed to get element4');
+        // console.log(element9 ? 'Has element9!' : 'Failed to get element9');
+        // console.log(element10 ? 'Has element10!' : 'Failed to get element10');
+
+        // page.waitForTimeout(3000)
+        await page.waitForSelector('#log_in_button > button')
+            .then(() => page.waitForTimeout(3000))
+    } catch (e) {
+        throw new Error('Unable to logout user : ', account);
+    }
+}
+
+
 async function checkMana(page) {
     var manas = await page.evaluate(() => {
         var manaCap = document.querySelectorAll('div.mana-total > span.mana-cap')[0].innerText;
@@ -68,6 +97,7 @@ const splinterIsActive = (splinterUrl) => {
 }
 
 exports.login = login;
+exports.logout = logout;
 exports.checkMana = checkMana;
 exports.checkMatchMana = checkMatchMana;
 exports.checkMatchRules = checkMatchRules;

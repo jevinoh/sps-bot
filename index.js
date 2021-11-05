@@ -383,6 +383,12 @@ const blockedResources = [
             console.log('Routine error at: ', new Date().toLocaleString(), e)
             sleepingTime = sleepingTimeRetry;
         }
+
+        // console.log('Logging out ', process.env.ACCOUNT)
+        // await splinterlandsPage.logout(page, process.env.ACCOUNT).catch(e=>{
+        //     console.log(e);
+        //     throw new Error('Logout Error');
+        // });
         await console.log(process.env.ACCOUNT,'waiting for the next battle in', sleepingTime / 1000 / 60 , ' minutes at ', new Date(Date.now() +sleepingTime).toLocaleString() )
         await new Promise(r => setTimeout(r, sleepingTime));
     }
