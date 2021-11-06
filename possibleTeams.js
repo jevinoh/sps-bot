@@ -1,4 +1,7 @@
 require('dotenv').config()
+var fs = require('fs');
+const path = require('path');
+
 const card = require('./cards');
 const helper = require('./helper');
 const battles = require('./battles');
@@ -62,10 +65,30 @@ const summonerColor = (id) => {
     return summonerDetails ? summonerDetails[id] : '';
 }
 
-const historyBackup = require("./data/newHistory.json");
+// const historyBackup = require("./data/newHistory.json");
 const basicCards = require('./data/basicCards.js');
+const { ConsoleMessage } = require('puppeteer');
 
 let availabilityCheck = (base, toCheck) => toCheck.slice(0, 7).every(v => base.includes(v));
+var allBattleHistory = [];
+
+function initializedBattleHistory () {
+    var dir = './data/randomRank/';
+    fs.readdirSync(dir).forEach(filename => {
+      const name = path.parse(filename).name;
+      const ext = path.parse(filename).ext;
+      const filepath = path.resolve(dir, filename);
+      const stat = fs.statSync(filepath);
+      const isFile = stat.isFile();
+
+      if (isFile)
+      {
+        const jsonString = fs.readFileSync(filepath)
+        const jsonFile = JSON.parse(jsonString)
+        allBattleHistory = Object.assign(allBattleHistory, jsonFile);
+      }
+    });
+}
 
 const getBattlesWithRuleset = (ruleset, mana, summoners) => {
     const rulesetEncoded = encodeURIComponent(ruleset);
@@ -85,6 +108,15 @@ const getBattlesWithRuleset = (ruleset, mana, summoners) => {
         .catch((e) => console.log('fetch ', e))
 }
 
+function battlesFilterByManacapHelper(mana, ruleset, historyBackup){
+    const result = historyBackup.filter(
+        battle =>
+            battle.mana_cap == mana &&
+            (ruleset ? battle.ruleset === ruleset : true))
+
+    return result;
+}
+
 const battlesFilterByManacap = async (mana, ruleset, summoners) => {
 
     // TODO: disable this API call for now, no usage because we don't have any access to it
@@ -101,14 +133,42 @@ const battlesFilterByManacap = async (mana, ruleset, summoners) => {
     }
     console.log('API battles did not return ', history)
     */
-    const backupLength = historyBackup && historyBackup.length
-    console.log('Using Backup ', backupLength)
-    
-    return historyBackup.filter(
-        battle =>
-            battle.mana_cap == mana &&
-            (ruleset ? battle.ruleset === ruleset : true)
-    )
+
+    if(allBattleHistory.length == 0)
+    {
+        initializedBattleHistory();
+    }
+
+    // var battleResult = [];
+
+    // var dir = './data/randomRank/';
+    // fs.readdirSync(dir).forEach(filename => {
+    //   const name = path.parse(filename).name;
+    //   const ext = path.parse(filename).ext;
+    //   const filepath = path.resolve(dir, filename);
+    //   const stat = fs.statSync(filepath);
+    //   const isFile = stat.isFile();
+  
+    //   if (isFile)
+    //   {
+    //     const jsonString = fs.readFileSync(filepath)
+    //     const jsonFile = JSON.parse(jsonString)
+    //     const battelist = battlesFilterByManacapHelper(mana, ruleset, jsonFile);
+    //     battleResult = Object.assign(battleResult, battelist);
+    //   }
+    // });
+
+    // battleResult = battlesFilterByManacapHelper(mana, ruleset, allBattleHistory);
+
+    const battleResult = allBattleHistory.filter(
+                            battle =>
+                                battle.mana_cap == mana &&
+                                (ruleset ? battle.ruleset === ruleset : true))
+
+    console.log('Battle History [' + allBattleHistory.length + ']');
+
+    console.log('Possible combination [' + battleResult.length + ']');
+    return battleResult;
 }
 
 function compare(a, b) {
@@ -166,7 +226,14 @@ const possibleTeams = async (matchDetails) => {
         if (possibleTeams.length > 0) {
             return possibleTeams;
         }
-        matchDetails.mana--;
+
+        if (matchDetails.mana > 40) {
+            matchDetails.mana = 40;
+        }
+        else {
+            matchDetails.mana--;
+        }
+
     }
     return possibleTeams;
 }
