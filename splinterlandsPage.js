@@ -1,12 +1,12 @@
-async function login(page) {
+async function login(page, account, password) {
     try {
         page.waitForSelector('#log_in_button > button').then(() => page.click('#log_in_button > button'))
         await page.waitForSelector('#email')
             .then(() => page.waitForTimeout(3000))
             .then(() => page.focus('#email'))
-            .then(() => page.type('#email', process.env.ACCOUNT))
+            .then(() => page.type('#email', account))
             .then(() => page.focus('#password'))
-            .then(() => page.type('#password', process.env.PASSWORD))
+            .then(() => page.type('#password', password))
 
             // .then(() => page.waitForSelector('#login_dialog_v2 > div > div > div.modal-body > div > div > form > div > div.col-sm-offset-1 > button', { visible: true }).then(() => page.click('#login_dialog_v2 > div > div > div.modal-body > div > div > form > div > div.col-sm-offset-1 > button')))
             .then(() => page.keyboard.press('Enter'))
@@ -40,19 +40,10 @@ async function logout(page, account) {
         page.waitForSelector('#log_in_text').then(() => page.click('#log_in_text'));
         // let element1 = await page.waitForSelector('.dropdown-menu > li:nth-child(1) > a').then(() => page.click('.dropdown-menu > li:nth-child(1) > a'));
         let element1 = await page.waitForSelector('.dropdown-menu > li:nth-child(1) > a')
-        // let element2 = await page.waitForSelector('#log_in_text > dropdown-menu > li:nth-child(2) > a')
-        // let element3 = await page.waitForSelector('#log_in_text > dropdown-menu > li:nth-child(3) > a')
-        // let element4 = await page.waitForSelector('#log_in_text > .dropdown-menu > li:nth-child(4) > a')
-        // let element9 = await page.waitForSelector('#log_in_text > .dropdown-menu > li:nth-child(9) > a')
-        // let element10 = await page.waitForSelector('#log_in_text > .dropdown-menu > li:nth-child(10) > a')
+
         page.waitForSelector('.dropdown-menu > li:nth-child(10) > a').then(() => page.click('.dropdown-menu > li:nth-child(10) > a'));
 
         console.log(element1 ? 'Has element1!' : 'Failed to get element1');
-        // console.log(element2 ? 'Has element2!' : 'Failed to get element2');
-        // console.log(element3 ? 'Has element3!' : 'Failed to get element3');
-        // console.log(element4 ? 'Has element4!' : 'Failed to get element4');
-        // console.log(element9 ? 'Has element9!' : 'Failed to get element9');
-        // console.log(element10 ? 'Has element10!' : 'Failed to get element10');
 
         // page.waitForTimeout(3000)
         await page.waitForSelector('#log_in_button > button')
@@ -62,6 +53,73 @@ async function logout(page, account) {
     }
 }
 
+async function delegateCard(page, userName, cardId) {
+    try {
+        const cardElement = 'table tr[card_id="'+ cardId + '"] td[class="check"] .card-checkbox';
+        let element = await page.$(cardElement);
+        console.log(element ? 'Has card!' : 'Failed to get card element');
+
+        await page.waitForSelector(cardElement).then(() => page.click(cardElement));
+
+        console.log('Test 2');
+        await page.waitForSelector('.card-list-container .header .buttons .lease.enabled')
+            .then(() => page.click('.card-list-container .header .buttons .lease.enabled'))
+            .then(() => page.waitForTimeout(3000))
+            .then(() => page.focus('#recipient'))
+            .then(() => page.type('#recipient', userName))
+            .then(() => page.keyboard.press('Enter'))
+            .then(() => page.waitForTimeout(10000))
+            .then(() => page.reload())
+        console.log('Test 3');
+
+        // const statusElement = 'table tr[card_id="' + cardId + '"] td[class="status"] span.active';
+        // let leaseStatus = await page.$(statusElement);
+        // if(leaseStatus)
+        // {
+        //     console.log('Card successfully leased to ' + userName);
+        //     return true;
+        // }
+        // else
+        // {
+        //     console.log('Unable to lease the card to ' + userName);
+        //     return false;
+        // }
+    } catch (e) {
+        throw new Error('Unable to delegate card [' + cardId + ']' + ' to user: ' + userName);
+    }
+}
+
+async function unDelegateCard(page, cardId) {
+    try {
+        page.waitForTimeout(3000);
+
+        const statusElement = 'table tr[card_id="' + cardId + '"] td[class="status"] span.active';
+        let element = await page.$(statusElement);
+        console.log(element ? 'Delegating' : 'Undelegated card');
+
+        await page.waitForSelector(statusElement)
+            .then(() => page.click(statusElement))
+            .then(() => page.waitForTimeout(10000))
+            .then(() => page.reload());
+
+        console.log('Test 3');
+
+        // const statusElement = 'table tr[card_id="' + cardId + '"] td[class="status"] span.active';
+        // let leaseStatus = await page.$(statusElement);
+        // if(leaseStatus)
+        // {
+        //     console.log('Card successfully leased to ' + userName);
+        //     return true;
+        // }
+        // else
+        // {
+        //     console.log('Unable to lease the card to ' + userName);
+        //     return false;
+        // }
+    } catch (e) {
+        throw new Error('Unable to cancel delegation on card [' + cardId + ']');
+    }
+}
 
 async function checkMana(page) {
     var manas = await page.evaluate(() => {
@@ -98,6 +156,8 @@ const splinterIsActive = (splinterUrl) => {
 
 exports.login = login;
 exports.logout = logout;
+exports.delegateCard = delegateCard;
+exports.unDelegateCard = unDelegateCard;
 exports.checkMana = checkMana;
 exports.checkMatchMana = checkMatchMana;
 exports.checkMatchRules = checkMatchRules;
