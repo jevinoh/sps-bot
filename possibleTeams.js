@@ -73,7 +73,7 @@ let availabilityCheck = (base, toCheck) => toCheck.slice(0, 7).every(v => base.i
 var allBattleHistory = [];
 
 function initializedBattleHistory () {
-    var dir = './data/randomRank/';
+    var dir = './data/bronzeRank/';
     fs.readdirSync(dir).forEach(filename => {
       const name = path.parse(filename).name;
       const ext = path.parse(filename).ext;
@@ -85,7 +85,7 @@ function initializedBattleHistory () {
       {
         const jsonString = fs.readFileSync(filepath)
         const jsonFile = JSON.parse(jsonString)
-        allBattleHistory = Object.assign(allBattleHistory, jsonFile);
+        allBattleHistory = allBattleHistory.concat(jsonFile);
       }
     });
 }
@@ -227,8 +227,8 @@ const possibleTeams = async (matchDetails) => {
             return possibleTeams;
         }
 
-        if (matchDetails.mana > 40) {
-            matchDetails.mana = 40;
+        if (matchDetails.mana > 50) {
+            matchDetails.mana = 50;
         }
         else {
             matchDetails.mana--;
