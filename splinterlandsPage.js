@@ -1,5 +1,6 @@
 async function login(page, account, password) {
     try {
+        console.log('Login user: ' + account )
         page.waitForSelector('#log_in_button > button').then(() => page.click('#log_in_button > button'))
         await page.waitForSelector('#email')
             .then(() => page.waitForTimeout(3000))
@@ -36,16 +37,16 @@ async function login(page, account, password) {
 
 async function logout(page, account) {
     try {
-
-        page.waitForSelector('#log_in_text').then(() => page.click('#log_in_text'));
+        console.log('Logging out user: ' + account )
+        await page.waitForSelector('#log_in_text').then(() => page.click('#log_in_text'));
         // let element1 = await page.waitForSelector('.dropdown-menu > li:nth-child(1) > a').then(() => page.click('.dropdown-menu > li:nth-child(1) > a'));
         let element1 = await page.waitForSelector('.dropdown-menu > li:nth-child(1) > a')
 
-        page.waitForSelector('.dropdown-menu > li:nth-child(10) > a').then(() => page.click('.dropdown-menu > li:nth-child(10) > a'));
+        await page.waitForSelector('.dropdown-menu > li:nth-child(10) > a').then(() => page.click('.dropdown-menu > li:nth-child(10) > a'));
 
         console.log(element1 ? 'Has element1!' : 'Failed to get element1');
 
-        // page.waitForTimeout(3000)
+        page.waitForTimeout(8000)
         await page.waitForSelector('#log_in_button > button')
             .then(() => page.waitForTimeout(3000))
     } catch (e) {
@@ -68,10 +69,9 @@ async function delegateCard(page, userName, cardId) {
             .then(() => page.focus('#recipient'))
             .then(() => page.type('#recipient', userName))
             .then(() => page.keyboard.press('Enter'))
-            .then(() => page.waitForTimeout(10000))
-            .then(() => page.reload())
+            .then(() => page.waitForTimeout(15000))
         console.log('Test 3');
-
+        page.waitForTimeout(8000);
         // const statusElement = 'table tr[card_id="' + cardId + '"] td[class="status"] span.active';
         // let leaseStatus = await page.$(statusElement);
         // if(leaseStatus)
@@ -95,14 +95,18 @@ async function unDelegateCard(page, cardId) {
 
         const statusElement = 'table tr[card_id="' + cardId + '"] td[class="status"] span.active';
         let element = await page.$(statusElement);
-        console.log(element ? 'Delegating' : 'Undelegated card');
+        console.log(element ? 'Card is currently delegated' : 'Undelegated card');
 
-        await page.waitForSelector(statusElement)
+        if(element)
+        {
+            await page.waitForSelector(statusElement)
             .then(() => page.click(statusElement))
-            .then(() => page.waitForTimeout(10000))
-            .then(() => page.reload());
-
+            .then(() => page.waitForTimeout(15000));
+        }
         console.log('Test 3');
+
+        await page.reload();
+        page.waitForTimeout(5000);
 
         // const statusElement = 'table tr[card_id="' + cardId + '"] td[class="status"] span.active';
         // let leaseStatus = await page.$(statusElement);

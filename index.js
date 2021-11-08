@@ -1,6 +1,7 @@
 //'use strict';
 require('dotenv').config()
 const puppeteer = require('puppeteer');
+const fetch = require("node-fetch");
 
 const splinterlandsPage = require('./splinterlandsPage');
 const user = require('./user');
@@ -49,66 +50,99 @@ async function checkEcr(page) {
     }
 }
 
-
-async function startDelegatingCards(page) {
-    
-    console.log( new Date().toLocaleString(), 'opening browser...')
-    
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3163.100 Safari/537.36');
-    await page.setViewport({
-        width: 1800,
-        height: 1500,
-        deviceScaleFactor: 1,
-    });
-
-    await page.goto('https://splinterlands.io/');
-    await page.waitForTimeout(8000);
-
-    let item = await page.waitForSelector('#log_in_button > button', {
-        visible: true,
-      })
-      .then(res => res)
-      .catch(()=> console.log('Already logged in'))
-
-    if (item != undefined)
-    {console.log('Login attempt...')
-        await splinterlandsPage.login(page, accountInfosJson[0].account, accountInfosJson[0].password).catch(e=>{
-            console.log(e);
-            throw new Error('Login Error');
+async function getPlayerInfo(player = '') {
+    const playerInfo = await fetch('https://api2.splinterlands.com/players/details?name=' + player)
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response;
+        })
+        .then((playerInfo) => {
+            return playerInfo.json();
+        })
+        .catch((error) => {
+            console.error('There has been a problem with your fetch operation:', error);
         });
-    }
-    
+
+    return playerInfo;
+}
+
+
+async function startDelegatingCards(page, isDelegatedToMaster) {
+
     //NOTE: Flow is to undelegate the card first, then delegate it to the new user/account
     const cardId = 'G3-280-H629IGLBGW';
     const cardURL = 'https://splinterlands.com/?p=card_details&id=280&gold=true&edition=3&tab=';
 
-    // Use this for undelegation
-    await page.goto('https://splinterlands.io/?p=battle_history');
-    await page.waitForTimeout(8000);
-    await closePopups(page);
-    await closePopups(page);
-
-    await page.goto(cardURL);
-    await page.waitForTimeout(8000);
-
-    console.log('Viewing cards for undelegation')
-    await splinterlandsPage.unDelegateCard(page, cardId).catch(e=>{
-        console.log(e);
-        throw new Error('Unable to view the card');
-    });
-
-
-    if(accountInfosJson[0].account != accountInfosJson[currentAccountNum].account)
+    if(!isDelegatedToMaster)
     {
-        // Use this for delegation
+        console.log( new Date().toLocaleString(), 'opening browser...')
+
+        await page.goto('https://splinterlands.io/');
+        await page.waitForTimeout(8000);
+
+        if(accountInfosJson[currentAccountNum].account != accountInfosJson[0].account)
+        {
+            let item = await page.waitForSelector('#log_in_button > button', {
+                visible: true,
+            })
+            .then(res => res)
+            .catch(()=> console.log('Already logged in'))
+
+            if (item != undefined)
+            {console.log('Login attempt...')
+                await splinterlandsPage.login(page, accountInfosJson[0].account, accountInfosJson[0].password).catch(e=>{
+                    console.log(e);
+                    throw new Error('Login Error');
+                });
+            }
+        }
+
+        // Use this for undelegation
+        await page.goto('https://splinterlands.io/?p=battle_history');
+        await page.waitForTimeout(8000);
+        await closePopups(page);
+        await closePopups(page);
+
         await page.goto(cardURL);
         await page.waitForTimeout(8000);
 
-        console.log('Viewing cards for delegation')
-        await splinterlandsPage.delegateCard(page, 'jevin04', cardId).catch(e=>{
+        console.log('Viewing cards for undelegation')
+        await splinterlandsPage.unDelegateCard(page, cardId).catch(e=>{
             console.log(e);
             throw new Error('Unable to view the card');
         });
+    }
+
+    // Use this for delegation
+    await page.goto(cardURL);
+    await page.waitForTimeout(8000);
+
+    if(accountInfosJson[currentAccountNum].account != accountInfosJson[0].account)
+    {
+        console.log('Viewing cards for delegation')
+        await splinterlandsPage.delegateCard(page, accountInfosJson[currentAccountNum].account, cardId).catch(e=>{
+            console.log(e);
+            throw new Error('Unable to view the card');
+        });
+
+        await page.waitForTimeout(8000);
+        let item = await page.waitForSelector('.dropdown-menu > li:nth-child(1) > a', {
+            visible: false,
+        })
+        .then(res => res)
+        .catch(()=> console.log('Already logged out'))
+
+        if (item != undefined)
+        {console.log('Logout attempt...')
+        await splinterlandsPage.logout(page, accountInfosJson[currentAccountNum].account)
+            .catch(e=>{
+                console.log(e);
+                throw new Error('Logout Error');
+            });
+        }
+        await page.waitForTimeout(8000);
     }
 }
 
@@ -125,6 +159,8 @@ async function startBotPlayMatch(page, account, password) {
         deviceScaleFactor: 1,
     });
 
+    const playerInfo = await getPlayerInfo(account)
+
     await page.goto('https://splinterlands.io/');
     await page.waitForTimeout(8000);
 
@@ -135,7 +171,8 @@ async function startBotPlayMatch(page, account, password) {
       .catch(()=> console.log('Already logged in'))
 
     if (item != undefined)
-    {console.log('Login attempt...')
+    {
+        console.log('Login attempt...')
         await splinterlandsPage.login(page, account, password).catch(e=>{
             console.log(e);
             throw new Error('Login Error');
@@ -144,6 +181,27 @@ async function startBotPlayMatch(page, account, password) {
 
     await page.goto('https://splinterlands.io/?p=battle_history');
     await page.waitForTimeout(8000);
+
+    if(playerInfo.collection_power < 10000)
+    {
+        console.log(chalk.bold.red(`Collection Power is ${playerInfo.collection_power} . Will try to delegate card to ${account}`));
+        let delegatedToMaster = 0;
+        if(account != accountInfosJson[0].account)
+        {
+            await splinterlandsPage.logout(page, accountInfosJson[currentAccountNum].account)
+                .catch(e=>{
+                console.log(e);
+                throw new Error('Logout Error');
+            });
+        }
+        await page.waitForTimeout(8000);
+        await startDelegatingCards(page, delegatedToMaster);
+        await page.waitForTimeout(8000);
+        return;
+    }
+
+    // const ecr = playerInfo.capture_rate / 100;
+    // console.log(chalk.bold.whiteBright.bgMagenta('Your current Energy Capture Rate is ' + ecr + "%"));
 
     const ecr = await checkEcr(page);
     console.log('Recover Status: ', page.recoverStatus)
@@ -444,23 +502,29 @@ const blockedResources = [
                     sleepingTime = sleepingTimeRetry;
                 })
             await page.waitForTimeout(5000);
+
+            if(page.recoverStatus == 1)
+            {
+                page.recoverStatus = 0;
+                let delegatedToMaster = 1;
+                if(accountInfosJson[currentAccountNum].account != accountInfosJson[0].account)
+                {
+                    delegatedToMaster = 0;
+                    console.log('Logging out ', accountInfosJson[currentAccountNum].account)
+                    await splinterlandsPage.logout(page, accountInfosJson[currentAccountNum].account)
+                        .catch(e=>{
+                        console.log(e);
+                        throw new Error('Logout Error');
+                    });
+                }
+                accountsHelper.updateAccountNum();
+                currentAccountNum = accountsHelper.readCurrentAccountNum();
+                await startDelegatingCards(page, delegatedToMaster);
+            }
             
         } catch (e) {
             console.log('Routine error at: ', new Date().toLocaleString(), e)
             sleepingTime = sleepingTimeRetry;
-        }
-
-        if(page.recoverStatus == 1)
-        {
-            page.recoverStatus = 0;
-            console.log('Logging out ', accountInfosJson[currentAccountNum].account)
-            await splinterlandsPage.logout(page, accountInfosJson[currentAccountNum].account).catch(e=>{
-                 console.log(e);
-                 throw new Error('Logout Error');
-            });
-            accountsHelper.updateAccountNum();
-            currentAccountNum = accountsHelper.readCurrentAccountNum();
-            startDelegatingCards(page);
         }
 
         await console.log(accountInfosJson[currentAccountNum].account,'waiting for the next battle in', sleepingTime / 1000 / 60 , ' minutes at ', new Date(Date.now() +sleepingTime).toLocaleString() )
