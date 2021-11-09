@@ -18,17 +18,25 @@ let winTotal = 0;
 let loseTotal = 0;
 let undefinedTotal = 0;
 let currentAccountNum = accountsHelper.readCurrentAccountNum();
+let currentPlayerInfo = {};
+let currentPlayerCards = [];
+
+
+function isEmpty(obj) {
+    return Object.keys(obj).length === 0;
+}
 
 // LOAD MY CARDS
 async function getCards() {
-    const myCards = await user.getPlayerCards(accountInfosJson[currentAccountNum].account.split('@')[0]) //split to prevent email use
+    const myCards = await user.getPlayerCards(accountInfosJson[currentAccountNum].account) //split to prevent email use
     return myCards;
 } 
 
 async function getQuest() {
-    return quests.getPlayerQuest(accountInfosJson[currentAccountNum].account.split('@')[0])
+    const playerQuest = await quests.getPlayerQuest(accountInfosJson[currentAccountNum].account)
         .then(x=>x)
         .catch(e=>console.log('No quest data, splinterlands API didnt respond, or you are wrongly using the email and password instead of username and posting key'))
+    return  playerQuest;
 }
 
 async function closePopups(page) {
@@ -51,7 +59,7 @@ async function checkEcr(page) {
 }
 
 async function getPlayerInfo(player = '') {
-    const playerInfo = await fetch('https://api2.splinterlands.com/players/details?name=' + player)
+    const playerInfo = fetch('https://api2.splinterlands.com/players/details?name=' + player)
         .then((response) => {
             if (!response.ok) {
                 throw new Error('Network response was not ok');
@@ -61,8 +69,21 @@ async function getPlayerInfo(player = '') {
         .then((playerInfo) => {
             return playerInfo.json();
         })
-        .catch((error) => {
-            console.error('There has been a problem with your fetch operation:', error);
+        .catch(() => {
+            const playerInfoBak = fetch('https://api.splinterlands.io/players/details?name=' + player)
+                    .then((response) => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response;
+                    })
+                    .then((playerInfo) => {
+                        return playerInfo.json();
+                    })
+                    .catch((error) => {
+                        console.error('There has been a problem with your fetch operation:', error);
+                    });
+            return playerInfoBak;
         });
 
     return playerInfo;
@@ -146,20 +167,22 @@ async function startDelegatingCards(page, isDelegatedToMaster) {
     }
 }
 
-
-
 async function startBotPlayMatch(page, account, password) {
 
     console.log( new Date().toLocaleString(), 'opening browser...')
 
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3163.100 Safari/537.36');
-    await page.setViewport({
-        width: 1800,
-        height: 1500,
-        deviceScaleFactor: 1,
-    });
-
-    const playerInfo = await getPlayerInfo(account)
+    if(isEmpty(currentPlayerInfo))
+    {
+        const playerInfo = await getPlayerInfo(account)
+        if(!isEmpty(playerInfo))
+        {
+            currentPlayerInfo = playerInfo;
+        }
+        else
+        {
+            return;
+        }
+    }
 
     await page.goto('https://splinterlands.io/');
     await page.waitForTimeout(8000);
@@ -179,12 +202,9 @@ async function startBotPlayMatch(page, account, password) {
         });
     }
 
-    await page.goto('https://splinterlands.io/?p=battle_history');
-    await page.waitForTimeout(8000);
-
-    if(playerInfo.collection_power < 10000)
+    if(currentPlayerInfo.collection_power < 10000)
     {
-        console.log(chalk.bold.red(`Collection Power is ${playerInfo.collection_power} . Will try to delegate card to ${account}`));
+        console.log(chalk.bold.red(`Collection Power is ${currentPlayerInfo.collection_power} . Will try to delegate card to ${account}`));
         let delegatedToMaster = 0;
         if(account != accountInfosJson[0].account)
         {
@@ -197,8 +217,12 @@ async function startBotPlayMatch(page, account, password) {
         await page.waitForTimeout(8000);
         await startDelegatingCards(page, delegatedToMaster);
         await page.waitForTimeout(8000);
+        currentPlayerInfo = {}
         return;
     }
+
+    await page.goto('https://splinterlands.io/?p=battle_history');
+    await page.waitForTimeout(8000);
 
     // const ecr = playerInfo.capture_rate / 100;
     // console.log(chalk.bold.whiteBright.bgMagenta('Your current Energy Capture Rate is ' + ecr + "%"));
@@ -227,16 +251,29 @@ async function startBotPlayMatch(page, account, password) {
     if(!quest) {
         console.log('Error for quest details. Splinterlands API didnt work or you used incorrect username, remove @ and dont use email')
     }
-
-    console.log('getting user cards collection from splinterlands API...')
-    const myCards = await getCards()
+   
+    if(currentPlayerCards.length == 0)
+    {
+        console.log('getting user cards collection from splinterlands API...')
+        const myCards = await getCards()
         .then((x)=>{console.log('cards retrieved'); return x})
-        .catch(()=>console.log('cards collection api didnt respond. Did you use username? avoid email!')); 
+        .catch(()=>console.log('cards collection api didnt respond. Did you use username? avoid email!'));
 
-    if(myCards) {
-        console.log(account, ' deck size: '+myCards.length)
+        if((myCards != undefined) && (myCards.length > 0))
+        {
+            currentPlayerCards = myCards
+        }
+        else
+        {
+            return;
+        }
+    }
+
+    if(currentPlayerCards) {
+        console.log(account, ' deck size: '+ currentPlayerCards.length)
     } else {
-        console.log(account, ' playing only basic cards')
+        console.log('Fetch again the user\'s cards')
+        return;
     }
 
     //check if season reward is available
@@ -330,7 +367,7 @@ async function startBotPlayMatch(page, account, password) {
         mana: mana,
         rules: rules,
         splinters: splinters,
-        myCards: myCards
+        myCards: currentPlayerCards
     }
     await page.waitForTimeout(2000);
     const possibleTeams = await ask.possibleTeams(matchDetails).catch(e=>console.log('Error from possible team API call: ',e));
@@ -486,6 +523,14 @@ const blockedResources = [
     page.recoverStatus = 0;
 
     // startDelegatingCards(page);
+    // Init Browser settings
+
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3163.100 Safari/537.36');
+    await page.setViewport({
+        width: 1800,
+        height: 1500,
+        deviceScaleFactor: 1,
+    });
 
     while (true) {
         console.log(chalk.bold.redBright.bgBlack('Dont pay scammers!'));
@@ -519,6 +564,8 @@ const blockedResources = [
                 }
                 accountsHelper.updateAccountNum();
                 currentAccountNum = accountsHelper.readCurrentAccountNum();
+                currentPlayerCards = [];
+                currentPlayerInfo = {};
                 await startDelegatingCards(page, delegatedToMaster);
             }
             
