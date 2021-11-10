@@ -51,4 +51,17 @@ async function getPlayerQuest (username) {
   return quest;
 }
 
+
+// async function getQuest() {
+//   const playerQuest = await getPlayerQuest('jevinknows')
+//       .then(x=>x)
+//       .catch(e=>console.log('No quest data, splinterlands API didnt respond, or you are wrongly using the email and password instead of username and posting key'))
+//   return  playerQuest;
+// }
+
+// (async () => {
+//   const quest = await getQuest('jevinknows')
+//   console.log(quest)
+// })();
+
 module.exports.getPlayerQuest = getPlayerQuest;

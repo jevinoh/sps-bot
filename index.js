@@ -27,13 +27,13 @@ function isEmpty(obj) {
 }
 
 // LOAD MY CARDS
-async function getCards() {
-    const myCards = await user.getPlayerCards(accountInfosJson[currentAccountNum].account) //split to prevent email use
+async function getCards(account) {
+    const myCards = await user.getPlayerCards(account) //split to prevent email use
     return myCards;
 } 
 
-async function getQuest() {
-    const playerQuest = await quests.getPlayerQuest(accountInfosJson[currentAccountNum].account)
+async function getQuest(account) {
+    const playerQuest = await quests.getPlayerQuest(account)
         .then(x=>x)
         .catch(e=>console.log('No quest data, splinterlands API didnt respond, or you are wrongly using the email and password instead of username and posting key'))
     return  playerQuest;
@@ -171,18 +171,18 @@ async function startBotPlayMatch(page, account, password) {
 
     console.log( new Date().toLocaleString(), 'opening browser...')
 
-    if(isEmpty(currentPlayerInfo))
-    {
-        const playerInfo = await getPlayerInfo(account)
-        if(!isEmpty(playerInfo))
-        {
-            currentPlayerInfo = playerInfo;
-        }
-        else
-        {
-            return;
-        }
-    }
+    // if(isEmpty(currentPlayerInfo))
+    // {
+    //     const playerInfo = await getPlayerInfo(account)
+    //     if(!isEmpty(playerInfo))
+    //     {
+    //         currentPlayerInfo = playerInfo;
+    //     }
+    //     else
+    //     {
+    //         return;
+    //     }
+    // }
 
     await page.goto('https://splinterlands.io/');
     await page.waitForTimeout(8000);
@@ -202,24 +202,24 @@ async function startBotPlayMatch(page, account, password) {
         });
     }
 
-    if(currentPlayerInfo.collection_power < 10000)
-    {
-        console.log(chalk.bold.red(`Collection Power is ${currentPlayerInfo.collection_power} . Will try to delegate card to ${account}`));
-        let delegatedToMaster = 0;
-        if(account != accountInfosJson[0].account)
-        {
-            await splinterlandsPage.logout(page, accountInfosJson[currentAccountNum].account)
-                .catch(e=>{
-                console.log(e);
-                throw new Error('Logout Error');
-            });
-        }
-        await page.waitForTimeout(8000);
-        await startDelegatingCards(page, delegatedToMaster);
-        await page.waitForTimeout(8000);
-        currentPlayerInfo = {}
-        return;
-    }
+    // if(currentPlayerInfo.collection_power < 10000)
+    // {
+    //     console.log(chalk.bold.red(`Collection Power is ${currentPlayerInfo.collection_power} . Will try to delegate card to ${account}`));
+    //     let delegatedToMaster = 0;
+    //     if(account != accountInfosJson[0].account)
+    //     {
+    //         await splinterlandsPage.logout(page, accountInfosJson[currentAccountNum].account)
+    //             .catch(e=>{
+    //             console.log(e);
+    //             throw new Error('Logout Error');
+    //         });
+    //     }
+    //     await page.waitForTimeout(8000);
+    //     await startDelegatingCards(page, delegatedToMaster);
+    //     await page.waitForTimeout(8000);
+    //     currentPlayerInfo = {}
+    //     return;
+    // }
 
     await page.goto('https://splinterlands.io/?p=battle_history');
     await page.waitForTimeout(8000);
@@ -247,7 +247,7 @@ async function startBotPlayMatch(page, account, password) {
     
 
     console.log('getting user quest info from splinterlands API...')
-    const quest = await getQuest();
+    const quest = await getQuest(account);
     if(!quest) {
         console.log('Error for quest details. Splinterlands API didnt work or you used incorrect username, remove @ and dont use email')
     }
@@ -255,7 +255,7 @@ async function startBotPlayMatch(page, account, password) {
     if(currentPlayerCards.length == 0)
     {
         console.log('getting user cards collection from splinterlands API...')
-        const myCards = await getCards()
+        const myCards = await getCards(account)
         .then((x)=>{console.log('cards retrieved'); return x})
         .catch(()=>console.log('cards collection api didnt respond. Did you use username? avoid email!'));
 
@@ -476,7 +476,7 @@ const blockedResources = [
 
 
 (async () => {
-    console.log('START ', accountInfosJson[currentAccountNum].account, new Date().toLocaleString())
+    console.log('START ', process.env.ACCOUNT, new Date().toLocaleString())
     const browser = await puppeteer.launch({
         headless: isHeadlessMode, // default is true
         args: ['--no-sandbox',
@@ -539,7 +539,7 @@ const blockedResources = [
         console.log(chalk.bold.whiteBright.bgBlack('If you need support for the bot, join the telegram group https://t.me/splinterlandsbot and discord https://discord.gg/bR6cZDsFSX'));
         console.log(chalk.bold.greenBright.bgBlack('If you interested in a higher winning rate with the private API, contact the owner via discord or telegram')); 
         try {
-            await startBotPlayMatch(page, accountInfosJson[currentAccountNum].account, accountInfosJson[currentAccountNum].password)
+            await startBotPlayMatch(page, process.env.ACCOUNT, process.env.PASSWORD)
                 .then(() => {
                     console.log('Closing battle', new Date().toLocaleString());
                     sleepingTime = sleepingTimeNormal;    
@@ -550,33 +550,33 @@ const blockedResources = [
                 })
             await page.waitForTimeout(5000);
 
-            if(page.recoverStatus == 1)
-            {
-                page.recoverStatus = 0;
-                let delegatedToMaster = 1;
-                if(accountInfosJson[currentAccountNum].account != accountInfosJson[0].account)
-                {
-                    delegatedToMaster = 0;
-                    console.log('Logging out ', accountInfosJson[currentAccountNum].account)
-                    await splinterlandsPage.logout(page, accountInfosJson[currentAccountNum].account)
-                        .catch(e=>{
-                        console.log(e);
-                        throw new Error('Logout Error');
-                    });
-                }
-                accountsHelper.updateAccountNum();
-                currentAccountNum = accountsHelper.readCurrentAccountNum();
-                currentPlayerCards = [];
-                currentPlayerInfo = {};
-                await startDelegatingCards(page, delegatedToMaster);
-            }
+            // if(page.recoverStatus == 1)
+            // {
+            //     page.recoverStatus = 0;
+            //     let delegatedToMaster = 1;
+            //     if(accountInfosJson[currentAccountNum].account != accountInfosJson[0].account)
+            //     {
+            //         delegatedToMaster = 0;
+            //         console.log('Logging out ', accountInfosJson[currentAccountNum].account)
+            //         await splinterlandsPage.logout(page, accountInfosJson[currentAccountNum].account)
+            //             .catch(e=>{
+            //             console.log(e);
+            //             throw new Error('Logout Error');
+            //         });
+            //     }
+            //     accountsHelper.updateAccountNum();
+            //     currentAccountNum = accountsHelper.readCurrentAccountNum();
+            //     currentPlayerCards = [];
+            //     currentPlayerInfo = {};
+            //     await startDelegatingCards(page, delegatedToMaster);
+            // }
             
         } catch (e) {
             console.log('Routine error at: ', new Date().toLocaleString(), e)
             sleepingTime = sleepingTimeRetry;
         }
 
-        await console.log(accountInfosJson[currentAccountNum].account,'waiting for the next battle in', sleepingTime / 1000 / 60 , ' minutes at ', new Date(Date.now() +sleepingTime).toLocaleString() )
+        await console.log(process.env.ACCOUNT,'waiting for the next battle in', sleepingTime / 1000 / 60 , ' minutes at ', new Date(Date.now() +sleepingTime).toLocaleString() )
         await new Promise(r => setTimeout(r, sleepingTime));
     }
     console.log('Process end. need to restart')

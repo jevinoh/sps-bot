@@ -43,4 +43,16 @@ async function getPlayerCards(username){
   return cardList;
 }
 
+// async function getCards() {
+//   const myCards = await getPlayerCards('dhanylicious') //split to prevent email use
+//   return myCards;
+// } 
+
+// (async () => {
+//   const cards = await getCards();
+
+//   console.log(cards.length)
+//   console.log(cards)
+
+// })();
 module.exports.getPlayerCards = getPlayerCards;
