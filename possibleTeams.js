@@ -285,11 +285,11 @@ const teamSelection = async (possibleTeams, matchDetails, quest, favouriteDeck) 
     //TEST V2 Strategy ONLY FOR PRIVATE API
     if (process.env.API_VERSION == 2 && possibleTeams[0][8]) {
         // check dragons and remove the non playable:
-        const removedUnplayableDragons = possibleTeams.filter(team=>team[7]!=='dragon' || matchDetails.splinters.includes(helper.teamActualSplinterToPlay(team?.slice(0, 6)).toLowerCase()))
+        const removedUnplayableDragons = possibleTeams.filter(team=>team[7]!=='dragon' || matchDetails.splinters.includes(helper.teamActualSplinterToPlay(team? team.slice(0, 6) : team).toLowerCase()))
         //force favouriteDeck play:
-        if(favouriteDeck && matchDetails.splinters.includes(favouriteDeck?.toLowerCase())) {
+        if(favouriteDeck && matchDetails.splinters.includes(favouriteDeck? favouriteDeck.toLowerCase() : favouriteDeck)) {
             const filteredTeams = removedUnplayableDragons.filter(team=>team[7]===favouriteDeck)
-            console.log('play splinter:', favouriteDeck, 'from ', filteredTeams?.length, 'teams')
+            console.log('play splinter:', favouriteDeck, 'from ', filteredTeams? filteredTeams.length : filteredTeams, 'teams')
             if(filteredTeams && filteredTeams.length >= 1 && filteredTeams[0][8]) {
                 console.log('play deck:', filteredTeams[0])
                 return { summoner: filteredTeams[0][0], cards: filteredTeams[0] };
@@ -309,7 +309,7 @@ const teamSelection = async (possibleTeams, matchDetails, quest, favouriteDeck) 
                 return { summoner: filteredTeams[0][0], cards: filteredTeams[0] };
             }
         }
-        const filteredTeams = removedUnplayableDragons.filter(team=>matchDetails.splinters.includes(helper.teamActualSplinterToPlay(team?.slice(0, 6)).toLowerCase()))
+        const filteredTeams = removedUnplayableDragons.filter(team=>matchDetails.splinters.includes(helper.teamActualSplinterToPlay(team? team.slice(0, 6) : team).toLowerCase()))
         console.log('play the most winning: ', filteredTeams[0])
         return { summoner: filteredTeams[0][0], cards: filteredTeams[0] };
     }
@@ -342,7 +342,7 @@ const teamSelection = async (possibleTeams, matchDetails, quest, favouriteDeck) 
 
     let i = 0;
     for (i = 0; i <= possibleTeams.length - 1; i++) {
-        if (matchDetails.splinters.includes(possibleTeams[i][7]) && helper.teamActualSplinterToPlay(possibleTeams[i]) !== '' && matchDetails.splinters.includes(helper.teamActualSplinterToPlay(possibleTeams[i]?.slice(0, 6)).toLowerCase())) {
+        if (matchDetails.splinters.includes(possibleTeams[i][7]) && helper.teamActualSplinterToPlay(possibleTeams[i]) !== '' && matchDetails.splinters.includes(helper.teamActualSplinterToPlay(possibleTeams[i]? possibleTeams[i].slice(0, 6) : possibleTeams[i]).toLowerCase())) {
             console.log('Less than 25 teams available. SELECTED: ', possibleTeams[i]);
             const summoner = card.makeCardId(possibleTeams[i][0].toString());
             return { summoner: summoner, cards: possibleTeams[i] };
