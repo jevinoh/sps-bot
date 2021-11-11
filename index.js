@@ -208,7 +208,10 @@ async function startBotPlayMatch(page, account, password) {
         });
     }
 
-    if(currentPlayerInfo.collection_power < 10000)
+
+    const iscardDelegation = process.env.ENABLE_CARD_DELEGATION === 'true' ? true : false;
+
+    if(iscardDelegation && currentPlayerInfo.collection_power < 10000)
     {
         console.log(chalk.bold.red(`Collection Power is ${currentPlayerInfo.collection_power} . Will try to delegate card to ${account}`));
         let delegatedToMaster = 0;
@@ -597,7 +600,11 @@ const blockedResources = [
                 userLoseTotal = 0;
                 userUndefinedTotal = 0;
 
-                await startDelegatingCards(page, delegatedToMaster);
+                const iscardDelegation = process.env.ENABLE_CARD_DELEGATION === 'true' ? true : false;
+                if(iscardDelegation)
+                {
+                    await startDelegatingCards(page, delegatedToMaster);
+                }
             }
             
         } catch (e) {
