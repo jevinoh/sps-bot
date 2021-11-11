@@ -17,6 +17,12 @@ let totalDec = 0;
 let winTotal = 0;
 let loseTotal = 0;
 let undefinedTotal = 0;
+let userTotalDec = 0;
+let userWinTotal = 0;
+let userLoseTotal = 0;
+let userUndefinedTotal = 0;
+
+
 let currentAccountNum = accountsHelper.readCurrentAccountNum();
 let currentPlayerInfo = {};
 let currentPlayerCards = [];
@@ -157,7 +163,7 @@ async function startDelegatingCards(page, isDelegatedToMaster) {
 
         if (item != undefined)
         {console.log('Logout attempt...')
-        await splinterlandsPage.logout(page, accountInfosJson[currentAccountNum].account)
+        await splinterlandsPage.logout(page, accountInfosJson[0].account)
             .catch(e=>{
                 console.log(e);
                 throw new Error('Logout Error');
@@ -208,6 +214,7 @@ async function startBotPlayMatch(page, account, password) {
         let delegatedToMaster = 0;
         if(account != accountInfosJson[0].account)
         {
+            await page.waitForTimeout(8000);
             await splinterlandsPage.logout(page, accountInfosJson[currentAccountNum].account)
                 .catch(e=>{
                 console.log(e);
@@ -227,6 +234,8 @@ async function startBotPlayMatch(page, account, password) {
     // const ecr = playerInfo.capture_rate / 100;
     // console.log(chalk.bold.whiteBright.bgMagenta('Your current Energy Capture Rate is ' + ecr + "%"));
 
+    /*
+     * DISABLE ECR CHECKING SINCE IT'S UNRELIABLE FOR MULTIPLE ACCOUNTS THAT LOGGED IN/OUT
     const ecr = await checkEcr(page);
     console.log('Recover Status: ', page.recoverStatus)
     if(page.recoverStatus === 0) {
@@ -244,7 +253,16 @@ async function startBotPlayMatch(page, account, password) {
             throw new Error(`Recovery phase and ECR lower than limit ${process.env.ECR_RECOVER_TO}`);
         }
     }
-    
+    */
+    const userTotalBattle = userWinTotal + userLoseTotal + userUndefinedTotal;
+    console.log(chalk.bold.whiteBright.bgMagenta('Current User\'s total battle: ', userTotalBattle))
+    if(page.recoverStatus === 0) {
+        if ((process.env.NUM_BATTLE_LIMIT && userTotalBattle >= parseFloat(process.env.NUM_BATTLE_LIMIT)) || (userTotalBattle >= 35) ) {
+            page.recoverStatus = 1
+            console.log(chalk.bold.red(`Reach maximum number of battles ${process.env.NUM_BATTLE_LIMIT}. Switching to another user`));
+            return
+        }
+    }
 
     console.log('getting user quest info from splinterlands API...')
     const quest = await getQuest();
@@ -432,18 +450,26 @@ async function startBotPlayMatch(page, account, password) {
 				const decWon = await getElementText(page, '.player.winner span.dec-reward span', 1000);
 				console.log(chalk.green('You won! Reward: ' + decWon + ' DEC'));
                 totalDec += !isNaN(parseFloat(decWon)) ? parseFloat(decWon) : 0 ;
+                userTotalDec+= !isNaN(parseFloat(decWon)) ? parseFloat(decWon) : 0 ;
+
                 winTotal += 1;
+                userWinTotal+= 1;
 			}
 			else {
                 console.log(chalk.red('You lost'));
                 loseTotal += 1;
+                userLoseTotal += 1;
 			}
 		} catch {
 			console.log('Could not find winner - draw?');
             undefinedTotal += 1;
+            userUndefinedTotal += 1;
 		}
 		await clickOnElement(page, '.btn--done', 20000, 10000);
 		await clickOnElement(page, '#menu_item_battle', 20000, 10000);
+
+        console.log(chalk.magenta('User\'s total Battles: ' + (userWinTotal + userLoseTotal + userUndefinedTotal)) + chalk.green(' - Win Total: ' + userWinTotal) + chalk.yellow(' - Draw? Total: ' + userUndefinedTotal) + chalk.red(' - Lost Total: ' + userLoseTotal));
+        console.log(chalk.green('User\'s Total Earned: ' + userTotalDec + ' DEC'));
 
         console.log('Total Battles: ' + (winTotal + loseTotal + undefinedTotal) + chalk.green(' - Win Total: ' + winTotal) + chalk.yellow(' - Draw? Total: ' + undefinedTotal) + chalk.red(' - Lost Total: ' + loseTotal));
         console.log(chalk.green('Total Earned: ' + totalDec + ' DEC'));
@@ -535,9 +561,6 @@ const blockedResources = [
 
     page.favouriteDeck = process.env.FAVOURITE_DECK || '';
     while (true) {
-        console.log(chalk.bold.redBright.bgBlack('Dont pay scammers!'));
-        console.log(chalk.bold.whiteBright.bgBlack('If you need support for the bot, join the telegram group https://t.me/splinterlandsbot and discord https://discord.gg/bR6cZDsFSX'));
-        console.log(chalk.bold.greenBright.bgBlack('If you interested in a higher winning rate with the private API, contact the owner via discord or telegram')); 
         try {
             await startBotPlayMatch(page, accountInfosJson[currentAccountNum].account, accountInfosJson[currentAccountNum].password)
                 .then(() => {
@@ -566,8 +589,14 @@ const blockedResources = [
                 }
                 accountsHelper.updateAccountNum();
                 currentAccountNum = accountsHelper.readCurrentAccountNum();
+                
                 currentPlayerCards = [];
                 currentPlayerInfo = {};
+                userTotalDec = 0;
+                userWinTotal = 0;
+                userLoseTotal = 0;
+                userUndefinedTotal = 0;
+
                 await startDelegatingCards(page, delegatedToMaster);
             }
             

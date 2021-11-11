@@ -9,7 +9,6 @@ async function login(page, account, password) {
             .then(() => page.focus('#password'))
             .then(() => page.type('#password', password))
 
-            // .then(() => page.waitForSelector('#login_dialog_v2 > div > div > div.modal-body > div > div > form > div > div.col-sm-offset-1 > button', { visible: true }).then(() => page.click('#login_dialog_v2 > div > div > div.modal-body > div > div > form > div > div.col-sm-offset-1 > button')))
             .then(() => page.keyboard.press('Enter'))
             .then(() => page.waitForTimeout(5000))
             .then(() => page.reload())
@@ -40,11 +39,11 @@ async function logout(page, account) {
         console.log('Logging out user: ' + account )
         await page.waitForSelector('#log_in_text').then(() => page.click('#log_in_text'));
         // let element1 = await page.waitForSelector('.dropdown-menu > li:nth-child(1) > a').then(() => page.click('.dropdown-menu > li:nth-child(1) > a'));
-        let element1 = await page.waitForSelector('.dropdown-menu > li:nth-child(1) > a')
+        // let element1 = await page.waitForSelector('.dropdown-menu > li:nth-child(1) > a')
 
         await page.waitForSelector('.dropdown-menu > li:nth-child(10) > a').then(() => page.click('.dropdown-menu > li:nth-child(10) > a'));
 
-        console.log(element1 ? 'Has element1!' : 'Failed to get element1');
+        // console.log(element1 ? 'Has element1!' : 'Failed to get element1');
 
         page.waitForTimeout(8000)
         await page.waitForSelector('#log_in_button > button')
@@ -62,7 +61,6 @@ async function delegateCard(page, userName, cardId) {
 
         await page.waitForSelector(cardElement).then(() => page.click(cardElement));
 
-        console.log('Test 2');
         await page.waitForSelector('.card-list-container .header .buttons .lease.enabled')
             .then(() => page.click('.card-list-container .header .buttons .lease.enabled'))
             .then(() => page.waitForTimeout(3000))
@@ -70,7 +68,7 @@ async function delegateCard(page, userName, cardId) {
             .then(() => page.type('#recipient', userName))
             .then(() => page.keyboard.press('Enter'))
             .then(() => page.waitForTimeout(15000))
-        console.log('Test 3');
+
         page.waitForTimeout(8000);
         // const statusElement = 'table tr[card_id="' + cardId + '"] td[class="status"] span.active';
         // let leaseStatus = await page.$(statusElement);
@@ -103,7 +101,10 @@ async function unDelegateCard(page, cardId) {
             .then(() => page.click(statusElement))
             .then(() => page.waitForTimeout(15000));
         }
-        console.log('Test 3');
+        else
+        {
+            throw new Error('Unable to delegat the card to ' + userName);
+        }
 
         await page.reload();
         page.waitForTimeout(5000);
