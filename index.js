@@ -102,74 +102,96 @@ async function startDelegatingCards(page, isDelegatedToMaster) {
     const cardId = 'G3-280-H629IGLBGW';
     const cardURL = 'https://splinterlands.com/?p=card_details&id=280&gold=true&edition=3&tab=';
 
-    if(!isDelegatedToMaster)
+    let isDelegateSuccess = false;
+    let isUnDelegateSuccess = false;
+    while(!isUnDelegateSuccess || !isDelegateSuccess)
     {
-        console.log( new Date().toLocaleString(), 'opening browser...')
-
-        await page.goto('https://splinterlands.io/');
-        await page.waitForTimeout(8000);
-
-        if(accountInfosJson[currentAccountNum].account != accountInfosJson[0].account)
-        {
-            let item = await page.waitForSelector('#log_in_button > button', {
-                visible: true,
-            })
-            .then(res => res)
-            .catch(()=> console.log('Already logged in'))
-
-            if (item != undefined)
-            {console.log('Login attempt...')
-                await splinterlandsPage.login(page, accountInfosJson[0].account, accountInfosJson[0].password).catch(e=>{
+        try{
+            if(!isDelegatedToMaster && !isUnDelegateSuccess)
+            {
+                console.log( new Date().toLocaleString(), 'opening browser...')
+        
+                await page.goto('https://splinterlands.io/');
+                await page.waitForTimeout(8000);
+        
+                if(accountInfosJson[currentAccountNum].account != accountInfosJson[0].account)
+                {
+                    let item = await page.waitForSelector('#log_in_button > button', {
+                        visible: true,
+                    })
+                    .then(res => res)
+                    .catch(()=> console.log('Already logged in'))
+        
+                    if (item != undefined)
+                    {console.log('Login attempt...')
+                        await splinterlandsPage.login(page, accountInfosJson[0].account, accountInfosJson[0].password).catch(e=>{
+                            console.log(e);
+                            throw new Error('Login Error');
+                        });
+                    }
+                }
+    
+                // Use this for undelegation
+                await page.goto('https://splinterlands.io/?p=battle_history');
+                await page.waitForTimeout(8000);
+                await closePopups(page);
+                await closePopups(page);
+        
+                await page.goto(cardURL);
+                await page.waitForTimeout(8000);
+        
+                console.log('Viewing cards for undelegation')
+                await splinterlandsPage.unDelegateCard(page, cardId)
+                    .then(() => isUnDelegateSuccess = true)
+                    .catch(e=>{
                     console.log(e);
-                    throw new Error('Login Error');
+                    throw new Error('Unable to view the card');
                 });
             }
+            else
+            {
+                isUnDelegateSuccess = true;
+            }
+        
+            // Use this for delegation
+            await page.goto(cardURL);
+            await page.waitForTimeout(8000);
+        
+            if(accountInfosJson[currentAccountNum].account != accountInfosJson[0].account)
+            {
+                console.log('Viewing cards for delegation')
+                await splinterlandsPage.delegateCard(page, accountInfosJson[currentAccountNum].account, cardId).catch(e=>{
+                    console.log(e);
+                    throw new Error('Unable to view the card');
+                });
+        
+                await page.waitForTimeout(8000);
+                let item = await page.waitForSelector('.dropdown-menu > li:nth-child(1) > a', {
+                    visible: false,
+                })
+                .then(res => res)
+                .catch(()=> console.log('Already logged out'))
+        
+                if (item != undefined)
+                {console.log('Logout attempt...')
+                await splinterlandsPage.logout(page, accountInfosJson[0].account)
+                    .catch(e=>{
+                        console.log(e);
+                        throw new Error('Logout Error');
+                    });
+                }
+                isDelegateSuccess = true;
+                await page.waitForTimeout(8000);
+            }
+            else
+            {
+                isDelegateSuccess = true;
+            }
         }
-
-        // Use this for undelegation
-        await page.goto('https://splinterlands.io/?p=battle_history');
-        await page.waitForTimeout(8000);
-        await closePopups(page);
-        await closePopups(page);
-
-        await page.goto(cardURL);
-        await page.waitForTimeout(8000);
-
-        console.log('Viewing cards for undelegation')
-        await splinterlandsPage.unDelegateCard(page, cardId).catch(e=>{
-            console.log(e);
-            throw new Error('Unable to view the card');
-        });
-    }
-
-    // Use this for delegation
-    await page.goto(cardURL);
-    await page.waitForTimeout(8000);
-
-    if(accountInfosJson[currentAccountNum].account != accountInfosJson[0].account)
-    {
-        console.log('Viewing cards for delegation')
-        await splinterlandsPage.delegateCard(page, accountInfosJson[currentAccountNum].account, cardId).catch(e=>{
-            console.log(e);
-            throw new Error('Unable to view the card');
-        });
-
-        await page.waitForTimeout(8000);
-        let item = await page.waitForSelector('.dropdown-menu > li:nth-child(1) > a', {
-            visible: false,
-        })
-        .then(res => res)
-        .catch(()=> console.log('Already logged out'))
-
-        if (item != undefined)
-        {console.log('Logout attempt...')
-        await splinterlandsPage.logout(page, accountInfosJson[0].account)
-            .catch(e=>{
-                console.log(e);
-                throw new Error('Logout Error');
-            });
+        catch(e){
+            console.log('Unable to delegate/undelegate the card, trying again..');
+            await page.waitForTimeout(2000);
         }
-        await page.waitForTimeout(8000);
     }
 }
 

@@ -55,21 +55,33 @@ async function logout(page, account) {
 
 async function delegateCard(page, userName, cardId) {
     try {
-        const cardElement = 'table tr[card_id="'+ cardId + '"] td[class="check"] .card-checkbox';
-        let element = await page.$(cardElement);
-        console.log(element ? 'Has card!' : 'Failed to get card element');
+        const statusElement = 'table tr[card_id="' + cardId + '"] td[class="status"] span.active';
+        let element = await page.$(statusElement);
+        console.log(element ? 'Card is currently delegated' : 'Undelegated card');
 
-        await page.waitForSelector(cardElement).then(() => page.click(cardElement));
+        if(element)
+        {
+            throw new Error('Card is currently delgated');
+        }
+        else
+        {
+            const cardElement = 'table tr[card_id="'+ cardId + '"] td[class="check"] .card-checkbox';
+            let element = await page.$(cardElement);
+            console.log(element ? 'Has card!' : 'Failed to get card element');
+    
+            await page.waitForSelector(cardElement).then(() => page.click(cardElement));
+    
+            await page.waitForSelector('.card-list-container .header .buttons .lease.enabled')
+                .then(() => page.click('.card-list-container .header .buttons .lease.enabled'))
+                .then(() => page.waitForTimeout(3000))
+                .then(() => page.focus('#recipient'))
+                .then(() => page.type('#recipient', userName))
+                .then(() => page.keyboard.press('Enter'))
+                .then(() => page.waitForTimeout(15000))
+    
+            page.waitForTimeout(8000);
+        }
 
-        await page.waitForSelector('.card-list-container .header .buttons .lease.enabled')
-            .then(() => page.click('.card-list-container .header .buttons .lease.enabled'))
-            .then(() => page.waitForTimeout(3000))
-            .then(() => page.focus('#recipient'))
-            .then(() => page.type('#recipient', userName))
-            .then(() => page.keyboard.press('Enter'))
-            .then(() => page.waitForTimeout(15000))
-
-        page.waitForTimeout(8000);
         // const statusElement = 'table tr[card_id="' + cardId + '"] td[class="status"] span.active';
         // let leaseStatus = await page.$(statusElement);
         // if(leaseStatus)
