@@ -103,7 +103,7 @@ async function unDelegateCard(page, cardId) {
         }
         else
         {
-            throw new Error('Unable to delegat the card to ' + userName);
+            return;
         }
 
         await page.reload();
