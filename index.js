@@ -213,9 +213,6 @@ async function startBotPlayMatch(page, account, password) {
         }
     }
 
-    await page.goto('https://splinterlands.io/');
-    await page.waitForTimeout(8000);
-
     let item = await page.waitForSelector('#log_in_button > button', {
         visible: true,
       })
@@ -572,7 +569,8 @@ const blockedResources = [
     await page.on('dialog', async dialog => {
         await dialog.accept();
     });
-    page.goto('https://splinterlands.io/');
+    await page.goto('https://splinterlands.io/');
+    await page.waitForTimeout(8000);
     page.recoverStatus = 0;
 
     // startDelegatingCards(page);

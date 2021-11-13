@@ -56,8 +56,7 @@ async function logout(page, account) {
 async function delegateCard(page, userName, cardId) {
     try {
         await page.reload();
-        page.waitForTimeout(8000);
-
+        await page.waitForTimeout(8000);
         const statusElement = 'table tr[card_id="' + cardId + '"] td[class="status"] span.active';
         let element = await page.$(statusElement);
         console.log(element ? 'Card is currently delegated' : 'Undelegated card');
@@ -68,6 +67,7 @@ async function delegateCard(page, userName, cardId) {
         }
         else
         {
+            await page.waitForTimeout(8000);
             const cardElement = 'table tr[card_id="'+ cardId + '"] td[class="check"] .card-checkbox';
             let element = await page.$(cardElement);
             console.log(element ? 'Has card!' : 'Failed to get card element');
@@ -80,23 +80,11 @@ async function delegateCard(page, userName, cardId) {
                 .then(() => page.focus('#recipient'))
                 .then(() => page.type('#recipient', userName))
                 .then(() => page.keyboard.press('Enter'))
-                .then(() => page.waitForTimeout(15000))
+                .then(() => page.waitForTimeout(8000))
     
-            page.waitForTimeout(8000);
+            await page.waitForTimeout(8000);
         }
 
-        // const statusElement = 'table tr[card_id="' + cardId + '"] td[class="status"] span.active';
-        // let leaseStatus = await page.$(statusElement);
-        // if(leaseStatus)
-        // {
-        //     console.log('Card successfully leased to ' + userName);
-        //     return true;
-        // }
-        // else
-        // {
-        //     console.log('Unable to lease the card to ' + userName);
-        //     return false;
-        // }
     } catch (e) {
         throw new Error('Unable to delegate card [' + cardId + ']' + ' to user: ' + userName);
     }
@@ -104,7 +92,7 @@ async function delegateCard(page, userName, cardId) {
 
 async function unDelegateCard(page, cardId) {
     try {
-        page.waitForTimeout(3000);
+        await page.waitForTimeout(3000);
 
         const statusElement = 'table tr[card_id="' + cardId + '"] td[class="status"] span.active';
         let element = await page.$(statusElement);
@@ -124,20 +112,8 @@ async function unDelegateCard(page, cardId) {
         }
 
         await page.reload();
-        page.waitForTimeout(5000);
+        await page.waitForTimeout(8000);
 
-        // const statusElement = 'table tr[card_id="' + cardId + '"] td[class="status"] span.active';
-        // let leaseStatus = await page.$(statusElement);
-        // if(leaseStatus)
-        // {
-        //     console.log('Card successfully leased to ' + userName);
-        //     return true;
-        // }
-        // else
-        // {
-        //     console.log('Unable to lease the card to ' + userName);
-        //     return false;
-        // }
     } catch (e) {
         throw new Error('Unable to cancel delegation on card [' + cardId + ']');
     }
