@@ -12,6 +12,7 @@ const ask = require('./possibleTeams');
 const chalk = require('chalk');
 const accountsHelper = require('./accountsHelper');
 const accountInfosJson = require('./accounts.json');
+const cardDelegate = require('./cardDelegateInfo.json');
 
 let totalDec = 0;
 let winTotal = 0;
@@ -99,8 +100,8 @@ async function getPlayerInfo(player = '') {
 async function startDelegatingCards(page, isDelegatedToMaster) {
 
     //NOTE: Flow is to undelegate the card first, then delegate it to the new user/account
-    const cardId = 'G3-280-H629IGLBGW';
-    const cardURL = 'https://splinterlands.com/?p=card_details&id=280&gold=true&edition=3&tab=';
+    const cardId = cardDelegate[0].cardId;
+    const cardURL = cardDelegate[0].cardURL;
 
     let isDelegateSuccess = false;
     let isUnDelegateSuccess = false;
