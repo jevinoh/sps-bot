@@ -55,6 +55,9 @@ async function logout(page, account) {
 
 async function delegateCard(page, userName, cardId) {
     try {
+        await page.reload();
+        page.waitForTimeout(8000);
+
         const statusElement = 'table tr[card_id="' + cardId + '"] td[class="status"] span.active';
         let element = await page.$(statusElement);
         console.log(element ? 'Card is currently delegated' : 'Undelegated card');
