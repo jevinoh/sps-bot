@@ -450,7 +450,7 @@ async function startBotPlayMatch(page, account, password) {
         await page.waitForTimeout(5000);
         for (i = 1; i <= 6; i++) {
             console.log('play: ', teamToPlay.cards[i].toString())
-            await teamToPlay.cards[i] ? page.waitForXPath(`//div[@card_detail_id="${teamToPlay.cards[i].toString()}"]`, { timeout: 10000 })
+            await teamToPlay.cards[i] ? page.waitForXPath(`//div[@card_detail_id="${teamToPlay.cards[i].toString()}"]`, { timeout: 15000 })
                 .then(selector => selector.click()) : console.log('nocard ', i);
             await page.waitForTimeout(1000);
         }
