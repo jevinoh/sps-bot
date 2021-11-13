@@ -111,6 +111,8 @@ async function unDelegateCard(page, cardId) {
         {
             await page.waitForSelector(statusElement)
             .then(() => page.click(statusElement))
+            .then(() => page.waitForTimeout(2000))
+            .then(() => page.keyboard.press('Enter'))
             .then(() => page.waitForTimeout(15000));
         }
         else
