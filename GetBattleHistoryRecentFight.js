@@ -212,7 +212,6 @@ async function getBronzeLeaderBoard() {
             battlesList = [];
             userCounter = 0;
         }
-
     })
     return users;
 }

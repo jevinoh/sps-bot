@@ -161,7 +161,15 @@ async function startDelegatingCards(page, isDelegatedToMaster) {
             if(accountInfosJson[currentAccountNum].account != accountInfosJson[0].account)
             {
                 console.log('Viewing cards for delegation')
-                await splinterlandsPage.delegateCard(page, accountInfosJson[currentAccountNum].account, cardId).catch(e=>{
+                await splinterlandsPage.delegateCard(page, accountInfosJson[currentAccountNum].account, cardId)
+                    .then(result => {
+                        if(!result)
+                        {
+                            // For some reason, the card was unable to undelegate. So try to undelegate/delegate flow again
+                            isUnDelegateSuccess = false;
+                        }
+                    })
+                    .catch(e=>{
                     console.log(e);
                     throw new Error('Unable to view the card');
                 });

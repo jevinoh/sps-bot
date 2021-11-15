@@ -65,7 +65,7 @@ async function delegateCard(page, userName, cardId) {
 
         if(element)
         {
-            throw new Error('Card is currently delgated');
+            return false;
         }
         else
         {
@@ -85,6 +85,7 @@ async function delegateCard(page, userName, cardId) {
                 .then(() => page.waitForTimeout(8000))
     
             await page.waitForTimeout(8000);
+            return true;
         }
 
     } catch (e) {
