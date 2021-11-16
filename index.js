@@ -609,7 +609,9 @@ const blockedResources = [
             {
                 page.recoverStatus = 0;
                 let delegatedToMaster = 1;
-                if(accountInfosJson[currentAccountNum].account != accountInfosJson[0].account)
+
+                const iscardDelegation = process.env.ENABLE_CARD_DELEGATION === 'true' ? true : false;
+                if(accountInfosJson[currentAccountNum].account != accountInfosJson[0].account || !iscardDelegation)
                 {
                     delegatedToMaster = 0;
                     console.log('Logging out ', accountInfosJson[currentAccountNum].account)
@@ -619,6 +621,7 @@ const blockedResources = [
                         throw new Error('Logout Error');
                     });
                 }
+
                 accountsHelper.updateAccountNum();
                 currentAccountNum = accountsHelper.readCurrentAccountNum();
                 
@@ -629,7 +632,6 @@ const blockedResources = [
                 userLoseTotal = 0;
                 userUndefinedTotal = 0;
 
-                const iscardDelegation = process.env.ENABLE_CARD_DELEGATION === 'true' ? true : false;
                 if(iscardDelegation)
                 {
                     await startDelegatingCards(page, delegatedToMaster);
