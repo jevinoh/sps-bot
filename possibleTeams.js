@@ -72,23 +72,28 @@ const { ConsoleMessage } = require('puppeteer');
 
 let availabilityCheck = (base, toCheck) => toCheck.slice(0, 7).every(v => base.includes(v));
 var allBattleHistory = [];
+const battleDirectory = ['./data/bronzeRank/', './data/silverRank/'];
+
 
 function initializedBattleHistory () {
-    var dir = './data/bronzeRank/';
-    fs.readdirSync(dir).forEach(filename => {
-      const name = path.parse(filename).name;
-      const ext = path.parse(filename).ext;
-      const filepath = path.resolve(dir, filename);
-      const stat = fs.statSync(filepath);
-      const isFile = stat.isFile();
 
-      if (isFile)
-      {
-        const jsonString = fs.readFileSync(filepath)
-        const jsonFile = JSON.parse(jsonString)
-        allBattleHistory = allBattleHistory.concat(jsonFile);
-      }
-    });
+    for (let x in battleDirectory) {
+        var dir = battleDirectory[x]
+        fs.readdirSync(dir).forEach(filename => {
+          const name = path.parse(filename).name;
+          const ext = path.parse(filename).ext;
+          const filepath = path.resolve(dir, filename);
+          const stat = fs.statSync(filepath);
+          const isFile = stat.isFile();
+
+          if (isFile)
+          {
+            const jsonString = fs.readFileSync(filepath)
+            const jsonFile = JSON.parse(jsonString)
+            allBattleHistory = allBattleHistory.concat(jsonFile);
+          }
+        });
+    }
 }
 
 const getBattlesWithRuleset = (ruleset, mana, summoners) => {
