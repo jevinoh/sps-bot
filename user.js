@@ -8,11 +8,13 @@ const timeout = setTimeout(() => {
 	controller.abort();
 }, 5000);
 
+let restrictCardOwner =['dhanylcious', 'jevinknows'];
+
 async function getPlayerCards(username){
   const cardList = fetch(`https://api2.splinterlands.com/cards/collection/${username}`,
             { "credentials": "omit", "headers": { "accept": "application/json, text/javascript, */*; q=0.01" }, "referrer": `https://splinterlands.com/?p=collection&a=${username}`, "referrerPolicy": "no-referrer-when-downgrade", "body": null, "method": "GET", "mode": "cors" })
             .then(x => x && x.json())
-            .then(x => x['cards'] ? x['cards'].filter(x=>x.delegated_to == null || x.delegated_to == username).map(card => card.card_detail_id) : '')
+            .then(x => x['cards'] ? x['cards'].filter(x=>x.delegated_to == null && !restrictCardOwner.includes(x.delegated_to)).map(card => card.card_detail_id) : '')
             .then(advanced => {
               const cardSet = new Set(advanced);
               const uniqueCards = [...cardSet];
@@ -26,7 +28,7 @@ async function getPlayerCards(username){
               const cardListBak = fetch(`https://api.splinterlands.io/cards/collection/${username}`,
                 { "credentials": "omit", "headers": { "accept": "application/json, text/javascript, */*; q=0.01" }, "referrer": `https://splinterlands.com/?p=collection&a=${username}`, "referrerPolicy": "no-referrer-when-downgrade", "body": null, "method": "GET", "mode": "cors" })
                 .then(x => x && x.json())
-                .then(x => x['cards'] ? x['cards'].filter(x=>x.delegated_to == null || x.delegated_to == username).map(card => card.card_detail_id) : '')
+                .then(x => x['cards'] ? x['cards'].filter(x=>x.delegated_to == null && !restrictCardOwner.includes(x.delegated_to)).map(card => card.card_detail_id) : '')
                 .then(advanced => {
                   const cardSet = new Set(advanced);
                   const uniqueCards = [...cardSet];
