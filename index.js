@@ -419,12 +419,32 @@ async function startBotPlayMatch(page, account, password) {
         myCards: currentPlayerCards
     }
     await page.waitForTimeout(2000);
-    const possibleTeams = await ask.possibleTeams(matchDetails).catch(e=>console.log('Error from possible team API call: ',e));
 
+    // BronzeLow, Bronze, Silver
+    const leagueRating = [2, 3, 4]
+    console.log('User rank: ', currentPlayerInfo.league);
+
+    let possibleTeams = await ask.possibleTeams(matchDetails, currentPlayerInfo.league).catch(e=>console.log('Error from possible team API call: ',e));
     if (possibleTeams && possibleTeams.length) {
         console.log('Possible Teams based on your cards: ', possibleTeams.length);
     } else {
-        console.log('Error:', matchDetails, possibleTeams)
+        for(let rank in leagueRating)
+        {
+            if(leagueRating[rank] != currentPlayerInfo.league)
+            {
+                console.log('Checking battle history on rank: ', leagueRating[rank]);
+                possibleTeams = await ask.possibleTeams(matchDetails, leagueRating[rank]).catch(e=>console.log('Error from possible team API call: ',e));
+
+                if (possibleTeams && possibleTeams.length) {
+                    console.log('Possible Teams based on your cards: ', possibleTeams.length);
+                    break;
+                }
+            }
+        }
+    }
+
+    if(!possibleTeams || possibleTeams.length == 0)
+    {
         throw new Error('NO TEAMS available to be played');
     }
     

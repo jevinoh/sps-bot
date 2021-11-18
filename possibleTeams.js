@@ -71,9 +71,12 @@ const basicCards = require('./data/basicCards.js');
 const { ConsoleMessage } = require('puppeteer');
 
 let availabilityCheck = (base, toCheck) => toCheck.slice(0, 7).every(v => base.includes(v));
+let isHistoryInitialize = false;
 var allBattleHistory = [];
-const battleDirectory = ['./data/bronzeRank/', './data/silverRank/'];
-
+const battleDirectory = ['./data/bronzeRankLow/', './data/bronzeRank/', './data/silverRank/'];
+var battleHistoryBronzeLow = [];
+var battleHistoryBronze = [];
+var battleHistorySilver = [];
 
 function initializedBattleHistory () {
 
@@ -90,7 +93,18 @@ function initializedBattleHistory () {
           {
             const jsonString = fs.readFileSync(filepath)
             const jsonFile = JSON.parse(jsonString)
-            allBattleHistory = allBattleHistory.concat(jsonFile);
+            if(x == 0)
+            {
+                battleHistoryBronzeLow = battleHistoryBronzeLow.concat(jsonFile);
+            }
+            else if(x == 1)
+            {
+                battleHistoryBronze = battleHistoryBronze.concat(jsonFile);
+            }
+            else if(x == 2)
+            {
+                battleHistorySilver = battleHistorySilver.concat(jsonFile);
+            }
           }
         });
     }
@@ -123,7 +137,7 @@ function battlesFilterByManacapHelper(mana, ruleset, historyBackup){
     return result;
 }
 
-const battlesFilterByManacap = async (mana, ruleset, summoners) => {
+const battlesFilterByManacap = async (mana, ruleset, summoners, rank) => {
 
     // TODO: disable this API call for now, no usage because we don't have any access to it
     //       WE MIGHT NEED to create our own API
@@ -140,38 +154,33 @@ const battlesFilterByManacap = async (mana, ruleset, summoners) => {
     console.log('API battles did not return ', history)
     */
 
-    if(allBattleHistory.length == 0)
+    if(isHistoryInitialize == false)
     {
         initializedBattleHistory();
+        isHistoryInitialize = true;
     }
 
-    // var battleResult = [];
+    var battleHistory = [];
 
-    // var dir = './data/randomRank/';
-    // fs.readdirSync(dir).forEach(filename => {
-    //   const name = path.parse(filename).name;
-    //   const ext = path.parse(filename).ext;
-    //   const filepath = path.resolve(dir, filename);
-    //   const stat = fs.statSync(filepath);
-    //   const isFile = stat.isFile();
-  
-    //   if (isFile)
-    //   {
-    //     const jsonString = fs.readFileSync(filepath)
-    //     const jsonFile = JSON.parse(jsonString)
-    //     const battelist = battlesFilterByManacapHelper(mana, ruleset, jsonFile);
-    //     battleResult = Object.assign(battleResult, battelist);
-    //   }
-    // });
+    if(rank == 1 || rank == 2)
+    {
+        battleHistory = battleHistoryBronzeLow
+    }
+    else if (rank == 3)
+    {
+        battleHistory = battleHistoryBronze
+    }
+    else if (rank == 4)
+    {
+        battleHistory = battleHistorySilver
+    }
 
-    // battleResult = battlesFilterByManacapHelper(mana, ruleset, allBattleHistory);
-
-    const battleResult = allBattleHistory.filter(
+    const battleResult = battleHistory.filter(
                             battle =>
                                 battle.mana_cap == mana &&
                                 (ruleset ? battle.ruleset === ruleset : true))
 
-    console.log('Battle History [' + allBattleHistory.length + ']');
+    console.log('Battle History [' + battleHistory.length + ']');
 
     console.log('Possible combination [' + battleResult.length + ']');
     return battleResult;
@@ -190,7 +199,7 @@ function compare(a, b) {
     return comparison;
   }
 
-const cardsIdsforSelectedBattles = (mana, ruleset, splinters, summoners) => battlesFilterByManacap(mana, ruleset, summoners)
+const cardsIdsforSelectedBattles = (mana, ruleset, splinters, summoners, rank) => battlesFilterByManacap(mana, ruleset, summoners, rank)
     .then(x => {
         return x.map(
             (x) => {
@@ -212,11 +221,11 @@ const cardsIdsforSelectedBattles = (mana, ruleset, splinters, summoners) => batt
         ).sort(compare)
     })
 
-const askFormation = function (matchDetails) {
+const askFormation = function (matchDetails, rank) {
     const cards = matchDetails.myCards || basicCards;
     const mySummoners = getSummoners(cards,matchDetails.splinters);
     console.log('INPUT: ', matchDetails.mana, matchDetails.rules, matchDetails.splinters, cards.length)
-    return cardsIdsforSelectedBattles(matchDetails.mana, matchDetails.rules, matchDetails.splinters, mySummoners)
+    return cardsIdsforSelectedBattles(matchDetails.mana, matchDetails.rules, matchDetails.splinters, mySummoners, rank)
         .then(x => x.filter(
             x => availabilityCheck(cards, x))
             .map(element => element)//cards.cardByIds(element)
@@ -224,20 +233,21 @@ const askFormation = function (matchDetails) {
 
 }
 
-const possibleTeams = async (matchDetails) => {
+const possibleTeams = async (matchDetails, rank) => {
     let possibleTeams = [];
-    while (matchDetails.mana > 10) {
-        console.log('check battles based on mana: '+matchDetails.mana)
-        possibleTeams = await askFormation(matchDetails)
+    let mana = matchDetails.mana
+    while (mana > 10) {
+        console.log('check battles based on mana: ' + mana)
+        possibleTeams = await askFormation(matchDetails, rank)
         if (possibleTeams.length > 0) {
             return possibleTeams;
         }
 
-        if (matchDetails.mana > 50) {
-            matchDetails.mana = 50;
+        if (mana > 50) {
+            mana = 50;
         }
         else {
-            matchDetails.mana--;
+            mana--;
         }
 
     }
@@ -357,6 +367,12 @@ const teamSelection = async (possibleTeams, matchDetails, quest, favouriteDeck) 
     throw new Error('NO TEAM available to be played.');
 }
 
+// (async () => {
+
+//     initializedBattleHistory();
+
+//     console.log(allBattleHistory.length);
+// })();
 
 module.exports.possibleTeams = possibleTeams;
 module.exports.teamSelection = teamSelection;
