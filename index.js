@@ -112,7 +112,7 @@ async function startDelegatingCards(page, isDelegatedToMaster) {
             {
                 console.log( new Date().toLocaleString(), 'opening browser...')
         
-                await page.goto('https://splinterlands.io/');
+                await page.goto('https://splinterlands.com/');
                 await page.waitForTimeout(8000);
         
                 if(accountInfosJson[currentAccountNum].account != accountInfosJson[0].account)
@@ -133,7 +133,7 @@ async function startDelegatingCards(page, isDelegatedToMaster) {
                 }
     
                 // Use this for undelegation
-                await page.goto('https://splinterlands.io/?p=battle_history');
+                await page.goto('https://splinterlands.com/?p=battle_history');
                 await page.waitForTimeout(8000);
                 await closePopups(page);
                 await closePopups(page);
@@ -259,7 +259,7 @@ async function startBotPlayMatch(page, account, password) {
         return;
     }
 
-    await page.goto('https://splinterlands.io/?p=battle_history');
+    await page.goto('https://splinterlands.com/?p=battle_history');
     await page.waitForTimeout(8000);
 
     // const ecr = playerInfo.capture_rate / 100;
@@ -387,7 +387,7 @@ async function startBotPlayMatch(page, account, password) {
                 .then(()=>console.log('start the match'))
                 .catch(async ()=>{
                     console.log('second attempt failed reloading from homepage...');
-                    await page.goto('https://splinterlands.io/');
+                    await page.goto('https://splinterlands.com/');
                     await page.waitForTimeout(5000);
                     await page.waitForXPath("//button[contains(., 'BATTLE')]", { timeout: 20000 })
                         .then(button => button.click())
@@ -423,16 +423,20 @@ async function startBotPlayMatch(page, account, password) {
     // BronzeLow, Bronze, Silver
     const leagueRating = [2, 3, 4]
     console.log('User rank: ', currentPlayerInfo.league);
+    var league = currentPlayerInfo.league;
+    if(page.favouriteDeck == 'water' && matchDetails.splinters.includes('water'))
+    {
+        league = 0;
+    }
 
-    let possibleTeams = await ask.possibleTeams(matchDetails, currentPlayerInfo.league).catch(e=>console.log('Error from possible team API call: ',e));
+    let possibleTeams = await ask.possibleTeams(matchDetails, league).catch(e=>console.log('Error from possible team API call: ',e));
     if (possibleTeams && possibleTeams.length) {
         console.log('Possible Teams based on your cards: ', possibleTeams.length);
     } else {
         for(let rank in leagueRating)
         {
-            if(leagueRating[rank] != currentPlayerInfo.league)
+            if(leagueRating[rank] >= currentPlayerInfo.league)
             {
-                console.log('Checking battle history on rank: ', leagueRating[rank]);
                 possibleTeams = await ask.possibleTeams(matchDetails, leagueRating[rank]).catch(e=>console.log('Error from possible team API call: ',e));
 
                 if (possibleTeams && possibleTeams.length) {
@@ -597,7 +601,7 @@ const blockedResources = [
     await page.on('dialog', async dialog => {
         await dialog.accept();
     });
-    await page.goto('https://splinterlands.io/');
+    await page.goto('https://splinterlands.com/');
     await page.waitForTimeout(8000);
     page.recoverStatus = 0;
 

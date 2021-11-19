@@ -72,8 +72,8 @@ const { ConsoleMessage } = require('puppeteer');
 
 let availabilityCheck = (base, toCheck) => toCheck.slice(0, 7).every(v => base.includes(v));
 let isHistoryInitialize = false;
-var allBattleHistory = [];
-const battleDirectory = ['./data/bronzeRankLow/', './data/bronzeRank/', './data/silverRank/'];
+const battleDirectory = ['./data/battleHistoryWavesmith/','./data/bronzeRankLow/', './data/bronzeRank/', './data/silverRank/'];
+var battleHistoryWavesmith = [];
 var battleHistoryBronzeLow = [];
 var battleHistoryBronze = [];
 var battleHistorySilver = [];
@@ -95,13 +95,17 @@ function initializedBattleHistory () {
             const jsonFile = JSON.parse(jsonString)
             if(x == 0)
             {
-                battleHistoryBronzeLow = battleHistoryBronzeLow.concat(jsonFile);
+                battleHistoryWavesmith = battleHistoryWavesmith.concat(jsonFile);
             }
             else if(x == 1)
             {
-                battleHistoryBronze = battleHistoryBronze.concat(jsonFile);
+                battleHistoryBronzeLow = battleHistoryBronzeLow.concat(jsonFile);
             }
             else if(x == 2)
+            {
+                battleHistoryBronze = battleHistoryBronze.concat(jsonFile);
+            }
+            else if(x == 3)
             {
                 battleHistorySilver = battleHistorySilver.concat(jsonFile);
             }
@@ -162,7 +166,11 @@ const battlesFilterByManacap = async (mana, ruleset, summoners, rank) => {
 
     var battleHistory = [];
 
-    if(rank == 1 || rank == 2)
+    if(rank == 0)
+    {
+        battleHistory = battleHistoryWavesmith
+    }
+    else if(rank == 1 || rank == 2)
     {
         battleHistory = battleHistoryBronzeLow
     }
@@ -234,6 +242,7 @@ const askFormation = function (matchDetails, rank) {
 }
 
 const possibleTeams = async (matchDetails, rank) => {
+    console.log('Checking battle history on rank: ', rank);
     let possibleTeams = [];
     let mana = matchDetails.mana
     while (mana > 10) {
