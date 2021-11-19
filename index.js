@@ -424,7 +424,7 @@ async function startBotPlayMatch(page, account, password) {
     const leagueRating = [2, 3, 4]
     console.log('User rank: ', currentPlayerInfo.league);
     var league = currentPlayerInfo.league;
-    if(page.favouriteDeck == 'water' && matchDetails.splinters.includes('water'))
+    if(page.favouriteDeck == 'water' && matchDetails.splinters.includes('water') && currentPlayerCards.includes(338))
     {
         league = 0;
     }
