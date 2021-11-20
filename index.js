@@ -565,8 +565,9 @@ const blockedResources = [
     console.log('START ', accountInfosJson[currentAccountNum].account, new Date().toLocaleString())
     const browser = await puppeteer.launch({
         headless: isHeadlessMode, // default is true
+        executablePath: '/usr/bin/chromium-browser',
         args: ['--no-sandbox',
-        '--disable-setuid-sandbox',
+        //'--disable-setuid-sandbox',
         //'--disable-dev-shm-usage',
         // '--disable-accelerated-2d-canvas',
         // '--disable-canvas-aa', 
@@ -583,7 +584,8 @@ const blockedResources = [
         '--mute-audio',
         // '--disable-infobars',
         // '--disable-breakpad',
-        '--disable-web-security']
+        //'--disable-web-security'
+        ]
     }); 
     //const page = await browser.newPage();
     let [page] = await browser.pages();
