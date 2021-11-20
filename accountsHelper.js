@@ -1,10 +1,10 @@
 'use strict';
 const fs = require('fs');
 
-const accountFile = './accounts.json';
+let accountFile;
 const accountNumFile = './accountNum.txt';  
-const accountInfosJson = require(accountFile);
-const accountLength = Object.keys(accountInfosJson).length;
+let accountInfosJson;
+let accountLength = 0;
 
 function updateAccountNum() {
     const currentNum = readCurrentAccountNum();
@@ -37,6 +37,14 @@ function readCurrentAccountNum() {
     return data;
 }
 
+function setAccountFile(fileName) {
+    console.log('Setting account file to:', fileName);
+    accountFile = fileName;
+
+    accountInfosJson = require(accountFile);
+    accountLength = Object.keys(accountInfosJson).length;
+}
+
 // const accountInfosJson = fs.readFileSync('./accounts.json', 'utf8');
 
 // var accounts = Object.keys(accountInfos);
@@ -54,6 +62,7 @@ function readCurrentAccountNum() {
 
 exports.readCurrentAccountNum = readCurrentAccountNum;
 exports.updateAccountNum = updateAccountNum;
+exports.setAccountFile = setAccountFile;
 
 
 

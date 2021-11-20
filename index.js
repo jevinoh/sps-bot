@@ -11,8 +11,9 @@ const quests = require('./quests');
 const ask = require('./possibleTeams');
 const chalk = require('chalk');
 const accountsHelper = require('./accountsHelper');
-const accountInfosJson = require('./accounts.json');
 const cardDelegate = require('./cardDelegateInfo.json');
+
+let accountInfosJson;
 
 let totalDec = 0;
 let winTotal = 0;
@@ -557,6 +558,10 @@ const blockedResources = [
 
 
 (async () => {
+    const args = process.argv.slice(2);
+    accountsHelper.setAccountFile(args[0]);
+    accountInfosJson = require(args[0]);
+
     console.log('START ', accountInfosJson[currentAccountNum].account, new Date().toLocaleString())
     const browser = await puppeteer.launch({
         headless: isHeadlessMode, // default is true
