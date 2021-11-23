@@ -433,11 +433,21 @@ const teamSelection = async (possibleTeams, matchDetails, quest, favouriteDeck) 
     throw new Error('NO TEAM available to be played.');
 }
 
+// const basicCards = require('./data/basicCards');
+
 // (async () => {
 
-//     initializedBattleHistory();
+//     const userMatchDetails = {
+//         mana: 28,
+//         ruleset: 'Heavy Hitters',
+//         summoner: 49,
+//         cards: [140, 50, 51, 52, 141, 139],
+//         myCards: basicCards
+//     }
 
-//     console.log(allBattleHistory.length);
+//     let team = await possibleAntiComboTeams(userMatchDetails)
+    
+//     console.log('my team ' + team);
 // })();
 
 module.exports.possibleTeams = possibleTeams;
