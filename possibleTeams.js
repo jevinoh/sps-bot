@@ -78,6 +78,8 @@ var battleHistoryBronzeLow = [];
 var battleHistoryBronze = [];
 var battleHistorySilver = [];
 
+const battleHistoryCombination = require('./data/bronzeRankBattleData/combinedDataBronze.json')
+
 function initializedBattleHistory () {
 
     for (let x in battleDirectory) {
@@ -194,6 +196,56 @@ const battlesFilterByManacap = async (mana, ruleset, summoners, rank) => {
     return battleResult;
 }
 
+const battlesFilterLosingCombo = async (userMatchDetails) => {
+
+    const userCards = userMatchDetails.myCards;
+
+    console.log(userCards.length);
+
+    const battleResult = battleHistoryCombination.filter(
+                            battle =>
+                                battle.summoner_id == userMatchDetails.summoner &&
+                                battle.monster_1_id == userMatchDetails.cards[0] &&
+                                battle.monster_2_id == userMatchDetails.cards[1] &&
+                                battle.monster_3_id == userMatchDetails.cards[2] &&
+                                battle.monster_4_id == userMatchDetails.cards[3] &&
+                                battle.monster_5_id == userMatchDetails.cards[4] &&
+                                battle.monster_6_id == userMatchDetails.cards[5] &&
+                                battle.mana_cap == userMatchDetails.mana &&
+                                (userMatchDetails.ruleset ? battle.ruleset === userMatchDetails.ruleset : true));
+
+    if(battleResult.length == 1)
+    {
+        const team = battleResult[0].antiCombo.filter(
+            combo => basicCards.includes(combo.summoner_id) &&
+            userCards.includes(combo.monster_1_id) &&
+            userCards.includes(combo.monster_2_id) &&
+            userCards.includes(combo.monster_3_id) &&
+            userCards.includes(combo.monster_4_id) &&
+            userCards.includes(combo.monster_5_id));
+
+        console.log(team);
+
+        // In case it returns multiple combo, choose always the first one since it
+        // occurs multiple times
+        if(team.length >= 1)
+        {
+            return [
+                team[0].summoner_id ? parseInt(team[0].summoner_id) : '',
+                team[0].monster_1_id ? parseInt(team[0].monster_1_id) : '',
+                team[0].monster_2_id ? parseInt(team[0].monster_2_id) : '',
+                team[0].monster_3_id ? parseInt(team[0].monster_3_id) : '',
+                team[0].monster_4_id ? parseInt(team[0].monster_4_id) : '',
+                team[0].monster_5_id ? parseInt(team[0].monster_5_id) : '',
+                team[0].monster_6_id ? parseInt(team[0].monster_6_id) : ''
+            ]
+        }
+
+    }
+    return battleResult;
+}
+
+
 function compare(a, b) {
     const totA = a[9];
     const totB = b[9];
@@ -238,7 +290,12 @@ const askFormation = function (matchDetails, rank) {
             x => availabilityCheck(cards, x))
             .map(element => element)//cards.cardByIds(element)
         )
+}
 
+
+const possibleAntiComboTeams = async (userMatchDetails) => {
+    const possibleTeam = battlesFilterLosingCombo(userMatchDetails)
+    return possibleTeam;
 }
 
 const possibleTeams = async (matchDetails, rank) => {
@@ -385,3 +442,4 @@ const teamSelection = async (possibleTeams, matchDetails, quest, favouriteDeck) 
 
 module.exports.possibleTeams = possibleTeams;
 module.exports.teamSelection = teamSelection;
+module.exports.possibleAntiComboTeams = possibleAntiComboTeams;

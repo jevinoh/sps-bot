@@ -359,9 +359,6 @@ async function startBotPlayMatch(page, account, password) {
         }
     }
 
-
-
-
     await page.waitForTimeout(5000);
 
     // LAUNCH the battle
