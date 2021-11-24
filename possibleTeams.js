@@ -341,10 +341,6 @@ const extractMonster = (team) => {
 }
 
 const getTeamBasedOpponentHistory = function (battleHistory, opponent, matchDetails) {
-
-    // const battles = battleHistory.battles
-
-    console.log('Fetching battle history of [' + opponent + ']')
     for(var x = 0; x < battleHistory.length; x++)
     {
         const battle = battleHistory[x]

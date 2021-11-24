@@ -428,13 +428,13 @@ async function startBotPlayMatch(page, account, password) {
 
             const battleHistory = await getOpponentBattleHistory(opponent);
 
-            if(battleHistory.length > 0)
+            if(battleHistory && battleHistory.length > 0)
             {
                 teamToPlay = await ask.getTeamBasedOpponentHistory(battleHistory, opponent, matchDetails);
 
                 console.log('Play this team: ', teamToPlay);
 
-                if(teamToPlay.length == 0)
+                if(teamToPlay === undefined || teamToPlay.length == 0)
                 {
                     // Extract the last two characters from opponent, and check if it's a bot and has another account
                     // Increment the number by 1 above the current opponent
@@ -443,22 +443,32 @@ async function startBotPlayMatch(page, account, password) {
                     {
                         var numberName = parseInt(numberStr)
                         numberName += 1;
+                        numberName = String(numberName).padStart(2, '0');
                         var newOpponentName =  opponent.slice(0, -2) + numberName
 
                         const battleHistoryNew_one = await getOpponentBattleHistory(newOpponentName);
-                        if(battleHistoryNew_one.length > 0)
+                        if(battleHistoryNew_one && battleHistoryNew_one.length > 0)
                         {
                             teamToPlay = await ask.getTeamBasedOpponentHistory(battleHistoryNew_one, newOpponentName, matchDetails);
                             console.log('Play this team: ', teamToPlay);
 
-                            if(teamToPlay.length == 0)
+                            if(teamToPlay === undefined || teamToPlay.length == 0)
                             {
                                 // Extract the last two characters from opponent, and check if it's a bot and has another account
-                                // This time 1 number below the current opponent
-                                numberName = numberName - 2;
+                                // This time 1 number below the current opponent or another 1 number above
+                                if(parseInt(numberName) == 1)
+                                {
+                                    numberName = parseInt(numberName) + 1;
+                                }
+                                else
+                                {
+                                    numberName = numberName - 2;
+                                }
+
+                                numberName = String(numberName).padStart(2, '0');
                                 newOpponentName =  opponent.slice(0, -2) + numberName
                                 const battleHistoryNew_two = await getOpponentBattleHistory(newOpponentName);
-                                if(battleHistoryNew_two.length > 0)
+                                if(battleHistoryNew_two && battleHistoryNew_two.length > 0)
                                 {
                                     teamToPlay = await ask.getTeamBasedOpponentHistory(battleHistoryNew_two, newOpponentName, matchDetails);
                                     console.log('Play this team: ', teamToPlay);
@@ -474,7 +484,7 @@ async function startBotPlayMatch(page, account, password) {
         console.error('Unable to get opponent info', e)
     }
 
-    if(teamToPlay.length == 0)
+    if(teamToPlay === undefined || teamToPlay.length == 0)
     {
         // BronzeLow, Bronze, Silver
         const leagueRating = [2, 3, 4]

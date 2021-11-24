@@ -55,6 +55,7 @@ const getElementTextByXpath = async (page, selector, timeout=20000) => {
 }
 
 async function getOpponentBattleHistory(player) {
+	console.log('Fetching opponent:', player)
 	const battleHistory = await fetch('https://api2.splinterlands.com/battle/history?player=' + player)
 	.then((response) => {
 		if (!response.ok) {
