@@ -432,8 +432,6 @@ async function startBotPlayMatch(page, account, password) {
             {
                 teamToPlay = await ask.getTeamBasedOpponentHistory(battleHistory, opponent, matchDetails);
 
-                console.log('Play this team: ', teamToPlay);
-
                 if(teamToPlay === undefined || teamToPlay.length == 0)
                 {
                     // Extract the last two characters from opponent, and check if it's a bot and has another account
@@ -441,41 +439,28 @@ async function startBotPlayMatch(page, account, password) {
                     var numberStr = opponent.substr(opponent.length - 2)
                     if(!isNaN(numberStr))
                     {
-                        var numberName = parseInt(numberStr)
-                        numberName += 1;
-                        numberName = String(numberName).padStart(2, '0');
-                        var newOpponentName =  opponent.slice(0, -2) + numberName
-
-                        const battleHistoryNew_one = await getOpponentBattleHistory(newOpponentName);
-                        if(battleHistoryNew_one && battleHistoryNew_one.length > 0)
+                        var highNum = Math.ceil((parseInt(numberStr)+1)/10)*10;
+                        for(var x = (highNum-10); x < highNum; x++)
                         {
-                            teamToPlay = await ask.getTeamBasedOpponentHistory(battleHistoryNew_one, newOpponentName, matchDetails);
-                            console.log('Play this team: ', teamToPlay);
+                            var numberName = String(x).padStart(2, '0');
+                            var newOpponentName =  opponent.slice(0, -2) + numberName
 
-                            if(teamToPlay === undefined || teamToPlay.length == 0)
+                            const battleHistoryNew_one = await getOpponentBattleHistory(newOpponentName);
+                            if(battleHistoryNew_one && battleHistoryNew_one.length > 0)
                             {
-                                // Extract the last two characters from opponent, and check if it's a bot and has another account
-                                // This time 1 number below the current opponent or another 1 number above
-                                if(parseInt(numberName) == 1)
+                                teamToPlay = await ask.getTeamBasedOpponentHistory(battleHistoryNew_one, newOpponentName, matchDetails);
+                                if(teamToPlay && Object.keys(teamToPlay).length != 0)
                                 {
-                                    numberName = parseInt(numberName) + 1;
-                                }
-                                else
-                                {
-                                    numberName = numberName - 2;
-                                }
-
-                                numberName = String(numberName).padStart(2, '0');
-                                newOpponentName =  opponent.slice(0, -2) + numberName
-                                const battleHistoryNew_two = await getOpponentBattleHistory(newOpponentName);
-                                if(battleHistoryNew_two && battleHistoryNew_two.length > 0)
-                                {
-                                    teamToPlay = await ask.getTeamBasedOpponentHistory(battleHistoryNew_two, newOpponentName, matchDetails);
                                     console.log('Play this team: ', teamToPlay);
+                                    break;
                                 }
                             }
                         }
                     }
+                }
+                else
+                {
+                    console.log('Play this team: ', teamToPlay);
                 }
             }
         }
@@ -484,7 +469,7 @@ async function startBotPlayMatch(page, account, password) {
         console.error('Unable to get opponent info', e)
     }
 
-    if(teamToPlay === undefined || teamToPlay.length == 0)
+    if(teamToPlay === undefined || Object.keys(teamToPlay).length === 0)
     {
         // BronzeLow, Bronze, Silver
         const leagueRating = [2, 3, 4]
