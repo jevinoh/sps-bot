@@ -423,7 +423,7 @@ async function startBotPlayMatch(page, account, password) {
         const opponent = await getElementText(page, 'div.modal-body > div:nth-child(1) > div > section > div.bio__details > div.bio__name > span.bio__name__display', 15000);
         if(opponent)
         {
-            console.log('Match details: ', matchDetails.mana, matchDetails.rules, matchDetails.splinters, cards.length)
+            console.log('Match details: ', matchDetails.mana, matchDetails.rules, matchDetails.splinters, matchDetails.myCards.length)
             console.log(chalk.red('Opponent exist: ' + opponent))
 
             const battleHistory = await getOpponentBattleHistory(opponent);
