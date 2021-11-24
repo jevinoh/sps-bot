@@ -1,6 +1,7 @@
 
 const cardsDetails = require("./data/cardsDetails.json");
 const card = require("./cards")
+const fetch = require("node-fetch");
 
 // const teamIdsArray = [167, 192, 160, 161, 163, 196, '', 'fire'];
 
@@ -53,7 +54,42 @@ const getElementTextByXpath = async (page, selector, timeout=20000) => {
 	return text;
 }
 
+async function getOpponentBattleHistory(player) {
+	const battleHistory = await fetch('https://api2.splinterlands.com/battle/history?player=' + player)
+	.then((response) => {
+		if (!response.ok) {
+			console.log('Network response was not ok');
+			return [];
+		}
+		return response;
+	})
+	.then((battleHistory) => {
+		return battleHistory.json();
+	})
+	.catch((error) => {
+		const secondaryBatteInfo = fetch('https://api.splinterlands.io/battle/history?player=' + player)
+		.then((response) => {
+			if (!response.ok) {
+				console.log('Network response was not ok');
+				return [];
+			}
+			return response;
+		})
+		.then((secondaryBatteInfo) => {
+			return secondaryBatteInfo.json();
+		})
+		.catch((error) => {
+			console.error('There has been a problem with your fetch operation:', error);
+			return [];
+		});
+		return secondaryBatteInfo;
+	});
+
+	return battleHistory.battles;
+}
+
 module.exports.teamActualSplinterToPlay = teamActualSplinterToPlay;
 module.exports.clickOnElement = clickOnElement;
 module.exports.getElementText = getElementText;
 module.exports.getElementTextByXpath = getElementTextByXpath;
+module.exports.getOpponentBattleHistory = getOpponentBattleHistory;

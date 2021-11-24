@@ -6,7 +6,7 @@ const fetch = require("node-fetch");
 const splinterlandsPage = require('./splinterlandsPage');
 const user = require('./user');
 const card = require('./cards');
-const { clickOnElement, getElementText, getElementTextByXpath, teamActualSplinterToPlay } = require('./helper');
+const { clickOnElement, getElementText, getElementTextByXpath, teamActualSplinterToPlay, getOpponentBattleHistory } = require('./helper');
 const quests = require('./quests');
 const ask = require('./possibleTeams');
 const chalk = require('chalk');
@@ -418,40 +418,99 @@ async function startBotPlayMatch(page, account, password) {
     }
     await page.waitForTimeout(2000);
 
-    // BronzeLow, Bronze, Silver
-    const leagueRating = [2, 3, 4]
-    console.log('User rank: ', currentPlayerInfo.league);
-    var league = currentPlayerInfo.league;
-    if(page.favouriteDeck == 'water' && matchDetails.splinters.includes('water') && currentPlayerCards.includes(338))
-    {
-        league = 0;
-    }
-
-    let possibleTeams = await ask.possibleTeams(matchDetails, league).catch(e=>console.log('Error from possible team API call: ',e));
-    if (possibleTeams && possibleTeams.length) {
-        console.log('Possible Teams based on your cards: ', possibleTeams.length);
-    } else {
-        for(let rank in leagueRating)
+    let teamToPlay;
+	try{
+        const opponent = await getElementText(page, 'div.modal-body > div:nth-child(1) > div > section > div.bio__details > div.bio__name > span.bio__name__display', 15000);
+        if(opponent)
         {
-            if(leagueRating[rank] >= currentPlayerInfo.league)
-            {
-                possibleTeams = await ask.possibleTeams(matchDetails, leagueRating[rank]).catch(e=>console.log('Error from possible team API call: ',e));
+            console.log('Match details: ', matchDetails.mana, matchDetails.rules, matchDetails.splinters, cards.length)
+            console.log(chalk.red('Opponent exist: ' + opponent))
 
-                if (possibleTeams && possibleTeams.length) {
-                    console.log('Possible Teams based on your cards: ', possibleTeams.length);
-                    break;
+            const battleHistory = await getOpponentBattleHistory(opponent);
+
+            if(battleHistory.length > 0)
+            {
+                teamToPlay = await ask.getTeamBasedOpponentHistory(battleHistory, opponent, matchDetails);
+
+                console.log('Play this team: ', teamToPlay);
+
+                if(teamToPlay.length == 0)
+                {
+                    // Extract the last two characters from opponent, and check if it's a bot and has another account
+                    // Increment the number by 1 above the current opponent
+                    var numberStr = opponent.substr(opponent.length - 2)
+                    if(!isNaN(numberStr))
+                    {
+                        var numberName = parseInt(numberStr)
+                        numberName += 1;
+                        var newOpponentName =  opponent.slice(0, -2) + numberName
+
+                        const battleHistoryNew_one = await getOpponentBattleHistory(newOpponentName);
+                        if(battleHistoryNew_one.length > 0)
+                        {
+                            teamToPlay = await ask.getTeamBasedOpponentHistory(battleHistoryNew_one, newOpponentName, matchDetails);
+                            console.log('Play this team: ', teamToPlay);
+
+                            if(teamToPlay.length == 0)
+                            {
+                                // Extract the last two characters from opponent, and check if it's a bot and has another account
+                                // This time 1 number below the current opponent
+                                numberName = numberName - 2;
+                                newOpponentName =  opponent.slice(0, -2) + numberName
+                                const battleHistoryNew_two = await getOpponentBattleHistory(newOpponentName);
+                                if(battleHistoryNew_two.length > 0)
+                                {
+                                    teamToPlay = await ask.getTeamBasedOpponentHistory(battleHistoryNew_two, newOpponentName, matchDetails);
+                                    console.log('Play this team: ', teamToPlay);
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
+    }catch(e)
+    {
+        console.error('Unable to get opponent info', e)
     }
 
-    if(!possibleTeams || possibleTeams.length == 0)
+    if(teamToPlay.length == 0)
     {
-        throw new Error('NO TEAMS available to be played');
+        // BronzeLow, Bronze, Silver
+        const leagueRating = [2, 3, 4]
+        console.log('User rank: ', currentPlayerInfo.league);
+        var league = currentPlayerInfo.league;
+        if(page.favouriteDeck == 'water' && matchDetails.splinters.includes('water') && currentPlayerCards.includes(338))
+        {
+            league = 0;
+        }
+
+        let possibleTeams = await ask.possibleTeams(matchDetails, league).catch(e=>console.log('Error from possible team API call: ',e));
+        if (possibleTeams && possibleTeams.length) {
+            console.log('Possible Teams based on your cards: ', possibleTeams.length);
+        } else {
+            for(let rank in leagueRating)
+            {
+                if(leagueRating[rank] >= currentPlayerInfo.league)
+                {
+                    possibleTeams = await ask.possibleTeams(matchDetails, leagueRating[rank]).catch(e=>console.log('Error from possible team API call: ',e));
+
+                    if (possibleTeams && possibleTeams.length) {
+                        console.log('Possible Teams based on your cards: ', possibleTeams.length);
+                        break;
+                    }
+                }
+            }
+        }
+
+        if(!possibleTeams || possibleTeams.length == 0)
+        {
+            throw new Error('NO TEAMS available to be played');
+        }
+
+        //TEAM SELECTION
+        teamToPlay = await ask.teamSelection(possibleTeams, matchDetails, quest, page.favouriteDeck);
     }
-    
-    //TEAM SELECTION
-    const teamToPlay = await ask.teamSelection(possibleTeams, matchDetails, quest, page.favouriteDeck);
 
     if (teamToPlay) {
         page.click('.btn--create-team')[0];

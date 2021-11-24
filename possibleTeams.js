@@ -200,8 +200,6 @@ const battlesFilterLosingCombo = async (userMatchDetails) => {
 
     const userCards = userMatchDetails.myCards;
 
-    console.log(userCards.length);
-
     const battleResult = battleHistoryCombination.filter(
                             battle =>
                                 battle.summoner_id == userMatchDetails.summoner &&
@@ -224,21 +222,28 @@ const battlesFilterLosingCombo = async (userMatchDetails) => {
             userCards.includes(combo.monster_4_id) &&
             userCards.includes(combo.monster_5_id));
 
-        console.log(team);
+        // console.log(team);
 
         // In case it returns multiple combo, choose always the first one since it
         // occurs multiple times
         if(team.length >= 1)
         {
-            return [
+            let selectedCards = [
                 team[0].summoner_id ? parseInt(team[0].summoner_id) : '',
                 team[0].monster_1_id ? parseInt(team[0].monster_1_id) : '',
                 team[0].monster_2_id ? parseInt(team[0].monster_2_id) : '',
                 team[0].monster_3_id ? parseInt(team[0].monster_3_id) : '',
                 team[0].monster_4_id ? parseInt(team[0].monster_4_id) : '',
                 team[0].monster_5_id ? parseInt(team[0].monster_5_id) : '',
-                team[0].monster_6_id ? parseInt(team[0].monster_6_id) : ''
+                team[0].monster_6_id ? parseInt(team[0].monster_6_id) : '',
+                summonerColor(team[0].summoner_id) ? summonerColor(team[0].summoner_id) : '',
+                team[0].tot ? parseInt(team[0].tot) : '',
+                team[0].ratio ? parseInt(team[0].ratio) : '',
             ]
+            return {
+                summoner: (team[0].summoner_id ? parseInt(team[0].summoner_id) : '').toString(),
+                cards: selectedCards
+            }
         }
 
     }
@@ -293,6 +298,114 @@ const askFormation = function (matchDetails, rank) {
 }
 
 
+const extractGeneralInfo = (x) => {
+    return {
+        created_date: x.created_date ? x.created_date : '',
+        match_type: x.match_type ? x.match_type : '',
+        mana_cap: x.mana_cap ? x.mana_cap : '',
+        ruleset: x.ruleset ? x.ruleset : '',
+        inactive: x.inactive ? x.inactive : ''
+    }
+}
+
+const extractMonster = (team) => {
+    const monster1 = team.monsters[0];
+    const monster2 = team.monsters[1];
+    const monster3 = team.monsters[2];
+    const monster4 = team.monsters[3];
+    const monster5 = team.monsters[4];
+    const monster6 = team.monsters[5];
+
+    return {
+        summoner_id: team.summoner.card_detail_id,
+        summoner_level: team.summoner.level,
+        monster_1_id: monster1 ? monster1.card_detail_id : '',
+        monster_1_level: monster1 ? monster1.level : '',
+        monster_1_abilities: monster1 ? monster1.abilities : '',
+        monster_2_id: monster2 ? monster2.card_detail_id : '',
+        monster_2_level: monster2 ? monster2.level : '',
+        monster_2_abilities: monster2 ? monster2.abilities : '',
+        monster_3_id: monster3 ? monster3.card_detail_id : '',
+        monster_3_level: monster3 ? monster3.level : '',
+        monster_3_abilities: monster3 ? monster3.abilities : '',
+        monster_4_id: monster4 ? monster4.card_detail_id : '',
+        monster_4_level: monster4 ? monster4.level : '',
+        monster_4_abilities: monster4 ? monster4.abilities : '',
+        monster_5_id: monster5 ? monster5.card_detail_id : '',
+        monster_5_level: monster5 ? monster5.level : '',
+        monster_5_abilities: monster5 ? monster5.abilities : '',
+        monster_6_id: monster6 ? monster6.card_detail_id : '',
+        monster_6_level: monster6 ? monster6.level : '',
+        monster_6_abilities: monster6 ? monster6.abilities : ''
+    }
+}
+
+const getTeamBasedOpponentHistory = function (battleHistory, opponent, matchDetails) {
+
+    // const battles = battleHistory.battles
+
+    console.log('Fetching battle history of [' + opponent + ']')
+    for(var x = 0; x < battleHistory.length; x++)
+    {
+        const battle = battleHistory[x]
+        const details = JSON.parse(battle.details);
+        let monstersDetails;
+        const info = extractGeneralInfo(battle);
+ 
+        if(details.type != 'Surrender' && opponent == details.team1.player)
+        {
+            monstersDetails = extractMonster(details.team1)
+            if(matchDetails.mana == info.mana_cap &&
+               matchDetails.rules == info.ruleset &&
+               matchDetails.splinters.includes(summonerColor(monstersDetails.summoner_id)))
+            {
+                const userMatchDetails = {
+                    mana: matchDetails.mana,
+                    ruleset: matchDetails.rules,
+                    summoner: monstersDetails.summoner_id,
+                    cards: [monstersDetails.monster_1_id,
+                            monstersDetails.monster_2_id,
+                            monstersDetails.monster_3_id,
+                            monstersDetails.monster_4_id,
+                            monstersDetails.monster_5_id,
+                            monstersDetails.monster_6_id
+                    ],
+                    myCards: matchDetails.myCards
+                }
+                const possibleTeam = possibleAntiComboTeams(userMatchDetails)
+                return possibleTeam;
+            }
+        }
+        else if(details.type != 'Surrender' && opponent == details.team2.player)
+        {
+            monstersDetails = extractMonster(details.team2)
+            if(matchDetails.mana == info.mana_cap &&
+               matchDetails.rules == info.ruleset &&
+               matchDetails.splinters.includes(summonerColor(monstersDetails.summoner_id)))
+            {
+                const userMatchDetails = {
+                    mana: matchDetails.mana,
+                    ruleset: matchDetails.rules,
+                    summoner: monstersDetails.summoner_id,
+                    cards: [monstersDetails.monster_1_id,
+                            monstersDetails.monster_2_id,
+                            monstersDetails.monster_3_id,
+                            monstersDetails.monster_4_id,
+                            monstersDetails.monster_5_id,
+                            monstersDetails.monster_6_id
+                    ],
+                    myCards: matchDetails.myCards
+                }
+                const possibleTeam = possibleAntiComboTeams(userMatchDetails)
+                return possibleTeam;
+            }
+        }
+
+
+
+    }
+    return [];
+}
 const possibleAntiComboTeams = async (userMatchDetails) => {
     const possibleTeam = battlesFilterLosingCombo(userMatchDetails)
     return possibleTeam;
@@ -453,3 +566,4 @@ const teamSelection = async (possibleTeams, matchDetails, quest, favouriteDeck) 
 module.exports.possibleTeams = possibleTeams;
 module.exports.teamSelection = teamSelection;
 module.exports.possibleAntiComboTeams = possibleAntiComboTeams;
+module.exports.getTeamBasedOpponentHistory = getTeamBasedOpponentHistory;
