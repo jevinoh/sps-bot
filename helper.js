@@ -98,8 +98,50 @@ async function getOpponentBattleHistory(player) {
 	return battleHistory.battles;
 }
 
+async function getPlayerEarnings(player = '') {
+    const timeout = setTimeout(() => {
+		controller.abort();
+	  }, 5000);
+
+    const playerInfo = await fetch('https://api2.splinterlands.com/players/balances?username=' + player, {signal: controller.signal })
+        .then((response) => {
+            if (!response.ok) {
+                // console.error('Network response was not ok');
+                return [];
+            }
+            return response;
+        })
+        .then((playerInfo) => {
+            return playerInfo.json();
+        })
+        .catch((error) => {
+            clearTimeout(timeout)
+            const secondaryPlayerInfo = fetch('https://api.splinterlands.io/players/balances?username=' + player, {signal: controller.signal })
+            .then((response) => {
+                if (!response.ok) {
+                    // console.error('Network response was not ok');
+                    return [];
+                }
+                return response;
+            })
+            .then((playerInfo) => {
+                return playerInfo.json();
+            })
+            .catch((error) => {
+                console.error('There has been a problem with your fetch operation:', error);
+                return [];
+            })
+            .finally(() => clearTimeout(timeout));
+            return secondaryPlayerInfo;
+        })
+        .finally(() => clearTimeout(timeout));
+
+    return playerInfo;
+}
+
 module.exports.teamActualSplinterToPlay = teamActualSplinterToPlay;
 module.exports.clickOnElement = clickOnElement;
 module.exports.getElementText = getElementText;
 module.exports.getElementTextByXpath = getElementTextByXpath;
 module.exports.getOpponentBattleHistory = getOpponentBattleHistory;
+module.exports.getPlayerEarnings = getPlayerEarnings;

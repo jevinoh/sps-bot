@@ -6,12 +6,11 @@ const fetch = require("node-fetch");
 const splinterlandsPage = require('./splinterlandsPage');
 const user = require('./user');
 const card = require('./cards');
-const { clickOnElement, getElementText, getElementTextByXpath, teamActualSplinterToPlay, getOpponentBattleHistory } = require('./helper');
+const { clickOnElement, getElementText, getElementTextByXpath, teamActualSplinterToPlay, getOpponentBattleHistory, getPlayerEarnings } = require('./helper');
 const quests = require('./quests');
 const ask = require('./possibleTeams');
 const chalk = require('chalk');
 const accountsHelper = require('./accountsHelper');
-const getEarning = require('./GetCurrentDecEarning')
 const cardDelegate = require('./cardDelegateInfo.json');
 
 let accountInfosJson;
@@ -211,7 +210,7 @@ async function startBotPlayMatch(page, account, password) {
     console.log( new Date().toLocaleString(), 'opening browser...')
 
     var currentDecBalance = 0;
-    let earnings = await getEarning.getPlayerInfo(account);
+    let earnings = await getPlayerEarnings(account);
     if(earnings != undefined && earnings.length != 0)
     {
         for(var i = 0; i < earnings.length; i++)
@@ -535,17 +534,11 @@ async function startBotPlayMatch(page, account, password) {
     try {
         var fightRetry = 0;
         var cardsSelected = false;
-        while(!cardsSelected || fightRetry < 3)
+        while(!cardsSelected && fightRetry < 3)
         {
             try{
                 await page.waitForXPath(`//div[@card_detail_id="${teamToPlay.summoner}"]`, { timeout: 10000 })
                 .then(summonerButton => summonerButton.click())
-                .catch(async ()=>{
-                    console.log(teamToPlay.summoner,'divId not found, reload and try again')
-                    page.reload();
-                    await page.waitForTimeout(5000);
-                    page.waitForXPath(`//div[@card_detail_id="${teamToPlay.summoner}"]`, { timeout: 10000 }).then(summonerButton => summonerButton.click())
-                });
                 if (card.color(teamToPlay.cards[0]) === 'Gold') {
                     const playTeamColor = teamActualSplinterToPlay(teamToPlay.cards.slice(0, 6)) || matchDetails.splinters[0]
                     console.log('Dragon play TEAMCOLOR', playTeamColor)
@@ -566,7 +559,7 @@ async function startBotPlayMatch(page, account, password) {
             {
                 console.log('Error occurs while choosing the cards. Retrying.....')
                 await page.reload();
-                await page.waitForTimeout(5000);
+                await page.waitForTimeout(10000);
                 fightRetry++;
                 cardsSelected = false;
             }
@@ -614,9 +607,8 @@ async function startBotPlayMatch(page, account, password) {
 		}
         */
 
-        var currentDecBalance = 0;
         var decEarned = 0;
-        earnings = await getEarning.getPlayerInfo(account);
+        earnings = await getPlayerEarnings(account);
         if(earnings != undefined && earnings.length != 0)
         {
             for(var i = 0; i < earnings.length; i++)

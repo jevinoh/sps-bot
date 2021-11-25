@@ -1,54 +1,12 @@
 const fetch = require("node-fetch");
 const chalk = require('chalk');
-const AbortController = require('abort-controller');
-const controller = new AbortController();
-
-async function getPlayerInfo(player = '') {
-    const timeout = setTimeout(() => {
-		controller.abort();
-	  }, 5000);
-
-    const playerInfo = await fetch('https://api2.splinterlands.com/players/balances?username=' + player, {signal: controller.signal })
-        .then((response) => {
-            if (!response.ok) {
-                // console.error('Network response was not ok');
-                return [];
-            }
-            return response;
-        })
-        .then((playerInfo) => {
-            return playerInfo.json();
-        })
-        .catch((error) => {
-            clearTimeout(timeout)
-            const secondaryPlayerInfo = fetch('https://api.splinterlands.io/players/balances?username=' + player, {signal: controller.signal })
-            .then((response) => {
-                if (!response.ok) {
-                    // console.error('Network response was not ok');
-                    return [];
-                }
-                return response;
-            })
-            .then((playerInfo) => {
-                return playerInfo.json();
-            })
-            .catch((error) => {
-                console.error('There has been a problem with your fetch operation:', error);
-                return [];
-            })
-            .finally(() => clearTimeout(timeout));
-            return secondaryPlayerInfo;
-        })
-        .finally(() => clearTimeout(timeout));
-
-    return playerInfo;
-}
+const helper = require('./helper');
 
 let userNames = [];
 let totalDec = 0;
 
-// const accountInfosJson = require('./accounts_all.json');
-var accountInfosJson
+const accountInfosJson = require('./accounts_all.json');
+
 async function getDecEarning() {
     var users = [];
     console.log('Account size[' + accountInfosJson.length + ']');
@@ -61,7 +19,7 @@ async function getDecEarning() {
     }
 
     const battles = userNames.map(user =>
-        getPlayerInfo(user)
+        helper.getPlayerEarnings(user)
             .then((infos) => {
                 for(var i = 0; i < infos.length; i++)
                 {
@@ -72,7 +30,7 @@ async function getDecEarning() {
                     }
                 }
             })
-        )
+    )
 
     Promise.all(battles).then(() => {
         console.log(chalk.green(new Date(Date.now()).toLocaleString() + " Current DEC earning [" + totalDec + "]"));
@@ -80,10 +38,8 @@ async function getDecEarning() {
 }
 
 
-// (async () => {
+(async () => {
 
-//     await getDecEarning();
+    await getDecEarning();
 
-// })();
-
-module.exports.getPlayerInfo = getPlayerInfo;
+})();
