@@ -11,6 +11,7 @@ const quests = require('./quests');
 const ask = require('./possibleTeams');
 const chalk = require('chalk');
 const accountsHelper = require('./accountsHelper');
+const getEarning = require('./GetCurrentDecEarning')
 const cardDelegate = require('./cardDelegateInfo.json');
 
 let accountInfosJson;
@@ -208,6 +209,24 @@ async function startDelegatingCards(page, isDelegatedToMaster) {
 async function startBotPlayMatch(page, account, password) {
 
     console.log( new Date().toLocaleString(), 'opening browser...')
+
+    var currentDecBalance = 0;
+    let earnings = await getEarning.getPlayerInfo(account);
+    if(earnings != undefined && earnings.length != 0)
+    {
+        for(var i = 0; i < earnings.length; i++)
+        {
+            // const tokenInfo =infos[1];
+            if (earnings[i].token == 'DEC') {
+                currentDecBalance = earnings[i].balance
+                break;
+            }
+        }
+    }
+    else
+    {
+        return;
+    }
 
     if(isEmpty(currentPlayerInfo))
     {
@@ -514,27 +533,45 @@ async function startBotPlayMatch(page, account, password) {
     }
     await page.waitForTimeout(5000);
     try {
-        await page.waitForXPath(`//div[@card_detail_id="${teamToPlay.summoner}"]`, { timeout: 10000 })
-            .then(summonerButton => summonerButton.click())
-            .catch(async ()=>{
-                console.log(teamToPlay.summoner,'divId not found, reload and try again')
-                page.reload();
-                await page.waitForTimeout(2000);
-                page.waitForXPath(`//div[@card_detail_id="${teamToPlay.summoner}"]`, { timeout: 10000 }).then(summonerButton => summonerButton.click())
-            });
-        if (card.color(teamToPlay.cards[0]) === 'Gold') {
-            const playTeamColor = teamActualSplinterToPlay(teamToPlay.cards.slice(0, 6)) || matchDetails.splinters[0]
-            console.log('Dragon play TEAMCOLOR', playTeamColor)
-            await page.waitForXPath(`//div[@data-original-title="${playTeamColor}"]`, { timeout: 8000 })
-                .then(selector => selector.click())
+        var fightRetry = 0;
+        var cardsSelected = false;
+        while(!cardsSelected || fightRetry < 3)
+        {
+            try{
+                await page.waitForXPath(`//div[@card_detail_id="${teamToPlay.summoner}"]`, { timeout: 10000 })
+                .then(summonerButton => summonerButton.click())
+                .catch(async ()=>{
+                    console.log(teamToPlay.summoner,'divId not found, reload and try again')
+                    page.reload();
+                    await page.waitForTimeout(5000);
+                    page.waitForXPath(`//div[@card_detail_id="${teamToPlay.summoner}"]`, { timeout: 10000 }).then(summonerButton => summonerButton.click())
+                });
+                if (card.color(teamToPlay.cards[0]) === 'Gold') {
+                    const playTeamColor = teamActualSplinterToPlay(teamToPlay.cards.slice(0, 6)) || matchDetails.splinters[0]
+                    console.log('Dragon play TEAMCOLOR', playTeamColor)
+                    await page.waitForXPath(`//div[@data-original-title="${playTeamColor}"]`, { timeout: 8000 })
+                        .then(selector => selector.click())
+                }
+                await page.waitForTimeout(5000);
+                for (i = 1; i <= 6; i++) {
+                    console.log('play: ', teamToPlay.cards[i].toString())
+                    teamToPlay.cards[i] ? await page.waitForXPath(`//div[@card_detail_id="${teamToPlay.cards[i].toString()}"]`, { timeout: 10000 })
+                        .then(selector => selector.click()) : console.log('nocard ', i);
+                    await page.waitForTimeout(1000);
+                }
+
+                cardsSelected = true;
+            }
+            catch(e)
+            {
+                console.log('Error occurs while choosing the cards. Retrying.....')
+                await page.reload();
+                await page.waitForTimeout(5000);
+                fightRetry++;
+                cardsSelected = false;
+            }
         }
-        await page.waitForTimeout(5000);
-        for (i = 1; i <= 6; i++) {
-            console.log('play: ', teamToPlay.cards[i].toString())
-            await teamToPlay.cards[i] ? page.waitForXPath(`//div[@card_detail_id="${teamToPlay.cards[i].toString()}"]`, { timeout: 15000 })
-                .then(selector => selector.click()) : console.log('nocard ', i);
-            await page.waitForTimeout(1000);
-        }
+
 
         await page.waitForTimeout(5000);
         try {
@@ -551,6 +588,9 @@ async function startBotPlayMatch(page, account, password) {
         await page.waitForSelector('#btnSkip', { timeout: 10000 }).then(()=>console.log('btnSkip visible')).catch(()=>console.log('btnSkip not visible'));
         await page.$eval('#btnSkip', elem => elem.click()).then(()=>console.log('btnSkip clicked')).catch(()=>console.log('btnSkip not visible')); //skip rumble
         await page.waitForTimeout(5000);
+
+        // Disable this part for now, it doesn't work in VPS
+        /*
         try {
 			const winner = await getElementText(page, 'section.player.winner .bio__name__display', 15000);
 			if (winner.trim() == account.split('@')[0]) {
@@ -572,15 +612,57 @@ async function startBotPlayMatch(page, account, password) {
             undefinedTotal += 1;
             userUndefinedTotal += 1;
 		}
+        */
+
+        var currentDecBalance = 0;
+        var decEarned = 0;
+        earnings = await getEarning.getPlayerInfo(account);
+        if(earnings != undefined && earnings.length != 0)
+        {
+            for(var i = 0; i < earnings.length; i++)
+            {
+                // const tokenInfo =infos[1];
+                if (earnings[i].token == 'DEC') {
+                    if(earnings[i].balance > currentDecBalance)
+                    {
+                        winTotal += 1;
+                        userWinTotal+= 1;
+                        const decEarned = earnings[i].balance - currentDecBalance;
+
+                        console.log(chalk.green('You won! Reward: ' + decEarned + ' DEC'));
+
+                        totalDec += decEarned;
+                        userTotalDec+= decEarned;
+                    }
+                    else
+                    {
+                        undefinedTotal += 1;
+                        userUndefinedTotal += 1;
+                        console.log(chalk.red('You lost'));
+                    }
+                    break;
+                }
+            }
+        }
+
 		await clickOnElement(page, '.btn--done', 20000, 10000);
 		await clickOnElement(page, '#menu_item_battle', 20000, 10000);
 
+        /*
         console.log(chalk.magenta('User\'s total Battles: ' + (userWinTotal + userLoseTotal + userUndefinedTotal)) + chalk.green(' - Win Total: ' + userWinTotal) + chalk.yellow(' - Draw? Total: ' + userUndefinedTotal) + chalk.red(' - Lost Total: ' + userLoseTotal));
         console.log(chalk.green('User\'s Total Earned: ' + userTotalDec + ' DEC'));
 
         console.log('Total Battles: ' + (winTotal + loseTotal + undefinedTotal) + chalk.green(' - Win Total: ' + winTotal) + chalk.yellow(' - Draw? Total: ' + undefinedTotal) + chalk.red(' - Lost Total: ' + loseTotal));
         console.log(chalk.green('Total Earned: ' + totalDec + ' DEC'));
+        */
+
+        console.log(chalk.magenta('User\'s total Battles: ' + (userWinTotal + userUndefinedTotal)) + chalk.green(' - Win Total: ' + userWinTotal) + chalk.red(' - Draw/Lose? Total: ' + userUndefinedTotal));
+        console.log(chalk.green('User\'s Total Earned: ' + userTotalDec + ' DEC'));
+
+        console.log('Total Battles: ' + (winTotal + loseTotal + undefinedTotal) + chalk.green(' - Win Total: ' + winTotal) + chalk.red(' - Draw/Lose? Total: ' + undefinedTotal));
+        console.log(chalk.green('Total Earned: ' + totalDec + ' DEC'));
         
+
     } catch (e) {
         throw new Error(e);
     }

@@ -2,6 +2,8 @@
 const cardsDetails = require("./data/cardsDetails.json");
 const card = require("./cards")
 const fetch = require("node-fetch");
+const AbortController = require('abort-controller')
+const controller = new AbortController();
 
 // const teamIdsArray = [167, 192, 160, 161, 163, 196, '', 'fire'];
 
@@ -55,8 +57,12 @@ const getElementTextByXpath = async (page, selector, timeout=20000) => {
 }
 
 async function getOpponentBattleHistory(player) {
+	const timeout = setTimeout(() => {
+		controller.abort();
+	  }, 10000);
+
 	console.log('Fetching opponent:', player)
-	const battleHistory = await fetch('https://api2.splinterlands.com/battle/history?player=' + player)
+	const battleHistory = await fetch('https://api2.splinterlands.com/battle/history?player=' + player, {signal: controller.signal })
 	.then((response) => {
 		if (!response.ok) {
 			console.log('Network response was not ok');
@@ -68,7 +74,8 @@ async function getOpponentBattleHistory(player) {
 		return battleHistory.json();
 	})
 	.catch((error) => {
-		const secondaryBatteInfo = fetch('https://api.splinterlands.io/battle/history?player=' + player)
+		clearTimeout(timeout)
+		const secondaryBatteInfo = fetch('https://api.splinterlands.io/battle/history?player=' + player, {signal: controller.signal })
 		.then((response) => {
 			if (!response.ok) {
 				console.log('Network response was not ok');
@@ -82,9 +89,11 @@ async function getOpponentBattleHistory(player) {
 		.catch((error) => {
 			console.error('There has been a problem with your fetch operation:', error);
 			return [];
-		});
+		})
+		.finally(() => clearTimeout(timeout));
 		return secondaryBatteInfo;
-	});
+	})
+	.finally(() => clearTimeout(timeout));
 
 	return battleHistory.battles;
 }
