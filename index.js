@@ -6,7 +6,7 @@ const fetch = require("node-fetch");
 const splinterlandsPage = require('./splinterlandsPage');
 const user = require('./user');
 const card = require('./cards');
-const { clickOnElement, getElementText, getElementTextByXpath, teamActualSplinterToPlay, getOpponentBattleHistory, getPlayerEarnings } = require('./helper');
+const { clickOnElement, getElementText, getElementTextByXpath, teamActualSplinterToPlay, getOpponentBattleHistory, getPlayerEarnings, getOponnentCards } = require('./helper');
 const quests = require('./quests');
 const ask = require('./possibleTeams');
 const chalk = require('chalk');
@@ -444,42 +444,82 @@ async function startBotPlayMatch(page, account, password) {
             console.log('Match details: ', matchDetails.mana, matchDetails.rules, matchDetails.splinters, matchDetails.myCards.length)
             console.log(chalk.red('Opponent exist: ' + opponent))
 
-            const battleHistory = await getOpponentBattleHistory(opponent);
-
-            if(battleHistory && battleHistory.length > 0)
+            let opponentCards = []
+            const battleStartTime = new Date();
+            var diff = 0
+            while(diff < 140000)
             {
-                teamToPlay = await ask.getTeamBasedOpponentHistory(battleHistory, opponent, matchDetails);
-
-                if(teamToPlay === undefined || teamToPlay.length == 0)
+                opponentCards = await getOponnentCards('kevz19')
+                if(opponentCards.length != 0)
                 {
-                    // Extract the last two characters from opponent, and check if it's a bot and has another account
-                    // Increment the number by 1 above the current opponent
-                    var numberStr = opponent.substr(opponent.length - 2)
-                    if(!isNaN(numberStr))
-                    {
-                        var highNum = Math.ceil((parseInt(numberStr)+1)/10)*10;
-                        for(var x = (highNum-10); x < highNum; x++)
-                        {
-                            var numberName = String(x).padStart(2, '0');
-                            var newOpponentName =  opponent.slice(0, -2) + numberName
+                    console.log('Opponent cards: ', opponentCards);
+                    break;
+                }
+                else
+                {
+                    console.log('Waiting for opponent cards');
+                    await page.waitForTimeout(3000);
+                }
+                diff = Math.abs(battleStartTime - new Date())
+                console.log('diff:', diff)
+            }
 
-                            const battleHistoryNew_one = await getOpponentBattleHistory(newOpponentName);
-                            if(battleHistoryNew_one && battleHistoryNew_one.length > 0)
+            if(opponentCards.length == 0)
+            {
+                const battleHistory = await getOpponentBattleHistory(opponent);
+
+                if(battleHistory && battleHistory.length > 0)
+                {
+                    teamToPlay = await ask.getTeamBasedOpponentHistory(battleHistory, opponent, matchDetails);
+    
+                    if(teamToPlay === undefined || teamToPlay.length == 0)
+                    {
+                        // Extract the last two characters from opponent, and check if it's a bot and has another account
+                        // Increment the number by 1 above the current opponent
+                        var numberStr = opponent.substr(opponent.length - 2)
+                        if(!isNaN(numberStr))
+                        {
+                            var highNum = Math.ceil((parseInt(numberStr)+1)/10)*10;
+                            for(var x = (highNum-10); x < highNum; x++)
                             {
-                                teamToPlay = await ask.getTeamBasedOpponentHistory(battleHistoryNew_one, newOpponentName, matchDetails);
-                                if(teamToPlay && Object.keys(teamToPlay).length != 0)
+                                var numberName = String(x).padStart(2, '0');
+                                var newOpponentName =  opponent.slice(0, -2) + numberName
+    
+                                const battleHistoryNew_one = await getOpponentBattleHistory(newOpponentName);
+                                if(battleHistoryNew_one && battleHistoryNew_one.length > 0)
                                 {
-                                    console.log('Play this team: ', teamToPlay);
-                                    break;
+                                    teamToPlay = await ask.getTeamBasedOpponentHistory(battleHistoryNew_one, newOpponentName, matchDetails);
+                                    if(teamToPlay && Object.keys(teamToPlay).length != 0)
+                                    {
+                                        console.log('Play this team: ', teamToPlay);
+                                        break;
+                                    }
                                 }
                             }
                         }
                     }
+                    else
+                    {
+                        console.log('Play this team: ', teamToPlay);
+                    }
                 }
-                else
-                {
-                    console.log('Play this team: ', teamToPlay);
+            }
+            else
+            {
+                const userMatchDetails = {
+                    mana: matchDetails.mana,
+                    ruleset: matchDetails.rules,
+                    summoner: opponentCards[0],
+                    cards: [opponentCards[1],
+                            opponentCards[2],
+                            opponentCards[3],
+                            opponentCards[4],
+                            opponentCards[5],
+                            opponentCards[6]
+                    ],
+                    myCards: matchDetails.myCards
                 }
+                teamToPlay = await ask.possibleAntiComboTeams(userMatchDetails)
             }
         }
     }catch(e)
@@ -537,7 +577,7 @@ async function startBotPlayMatch(page, account, password) {
         while(!cardsSelected && fightRetry < 3)
         {
             try{
-                await page.waitForXPath(`//div[@card_detail_id="${teamToPlay.summoner}"]`, { timeout: 10000 })
+                await page.waitForXPath(`//div[@card_detail_id="${teamToPlay.summoner}"]`, { timeout: 8000 })
                 .then(summonerButton => summonerButton.click())
                 if (card.color(teamToPlay.cards[0]) === 'Gold') {
                     const playTeamColor = teamActualSplinterToPlay(teamToPlay.cards.slice(0, 6)) || matchDetails.splinters[0]
@@ -545,10 +585,10 @@ async function startBotPlayMatch(page, account, password) {
                     await page.waitForXPath(`//div[@data-original-title="${playTeamColor}"]`, { timeout: 8000 })
                         .then(selector => selector.click())
                 }
-                await page.waitForTimeout(5000);
+                await page.waitForTimeout(3000);
                 for (i = 1; i <= 6; i++) {
                     console.log('play: ', teamToPlay.cards[i].toString())
-                    teamToPlay.cards[i] ? await page.waitForXPath(`//div[@card_detail_id="${teamToPlay.cards[i].toString()}"]`, { timeout: 10000 })
+                    teamToPlay.cards[i] ? await page.waitForXPath(`//div[@card_detail_id="${teamToPlay.cards[i].toString()}"]`, { timeout: 8000 })
                         .then(selector => selector.click()) : console.log('nocard ', i);
                     await page.waitForTimeout(1000);
                 }
@@ -559,7 +599,8 @@ async function startBotPlayMatch(page, account, password) {
             {
                 console.log('Error occurs while choosing the cards. Retrying.....')
                 await page.reload();
-                await page.waitForTimeout(10000);
+                await page.waitForTimeout(8000);
+                page.click('.btn--create-team')[0];
                 fightRetry++;
                 cardsSelected = false;
             }
