@@ -447,7 +447,7 @@ async function startBotPlayMatch(page, account, password) {
             let opponentCards = []
             const battleStartTime = new Date();
             var diff = 0
-            while(diff < 140000)
+            while(diff < 135000)
             {
                 opponentCards = await getOponnentCards('kevz19')
                 if(opponentCards.length != 0)
