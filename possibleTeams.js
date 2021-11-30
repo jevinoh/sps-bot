@@ -228,6 +228,7 @@ const battlesFilterLosingCombo = async (userMatchDetails) => {
         // occurs multiple times
         if(team.length >= 1)
         {
+            console.log('from battleHistoryCombinationRankOne')
             let selectedCards = [
                 team[0].summoner_id ? parseInt(team[0].summoner_id) : '',
                 team[0].monster_1_id ? parseInt(team[0].monster_1_id) : '',
@@ -275,6 +276,7 @@ const battlesFilterLosingCombo = async (userMatchDetails) => {
             // occurs multiple times
             if(team.length >= 1)
             {
+                console.log('from battleHistoryCombination')
                 let selectedCards = [
                     team[0].summoner_id ? parseInt(team[0].summoner_id) : '',
                     team[0].monster_1_id ? parseInt(team[0].monster_1_id) : '',
@@ -296,7 +298,7 @@ const battlesFilterLosingCombo = async (userMatchDetails) => {
         }
     }
     
-    return battleResult;
+    return [];
 }
 
 

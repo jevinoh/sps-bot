@@ -447,7 +447,8 @@ async function startBotPlayMatch(page, account, password) {
             let opponentCards = []
             const battleStartTime = new Date();
             var diff = 0
-            while(diff < 135000)
+            console.log('Waiting for opponent cards....');
+            while(diff < 80000)
             {
                 opponentCards = await getOponnentCards('kevz19')
                 if(opponentCards.length != 0)
@@ -457,11 +458,9 @@ async function startBotPlayMatch(page, account, password) {
                 }
                 else
                 {
-                    console.log('Waiting for opponent cards');
                     await page.waitForTimeout(3000);
                 }
                 diff = Math.abs(battleStartTime - new Date())
-                console.log('diff:', diff)
             }
 
             if(opponentCards.length == 0)
