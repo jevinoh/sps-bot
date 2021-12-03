@@ -444,9 +444,49 @@ async function startBotPlayMatch(page, account, password) {
             console.log('Match details: ', matchDetails.mana, matchDetails.rules, matchDetails.splinters, matchDetails.myCards.length)
             console.log(chalk.red('Opponent exist: ' + opponent))
 
+            let tempTeamToPlay;
+            const battleHistory = await getOpponentBattleHistory(opponent);
+            if(battleHistory && battleHistory.length > 0)
+            {
+                tempTeamToPlay = await ask.getTeamBasedOpponentHistory(battleHistory, opponent, matchDetails);
+
+                if(tempTeamToPlay === undefined || tempTeamToPlay.length == 0)
+                {
+                    // Extract the last two characters from opponent, and check if it's a bot and has another account
+                    // Increment the number by 1 above the current opponent
+                    var numberStr = opponent.substr(opponent.length - 2)
+                    if(!isNaN(numberStr))
+                    {
+                        var highNum = Math.ceil((parseInt(numberStr)+1)/10)*10;
+                        for(var x = (highNum-10); x < highNum; x++)
+                        {
+                            var numberName = String(x).padStart(2, '0');
+                            var newOpponentName =  opponent.slice(0, -2) + numberName
+
+                            const battleHistoryNew_one = await getOpponentBattleHistory(newOpponentName);
+                            if(battleHistoryNew_one && battleHistoryNew_one.length > 0)
+                            {
+                                tempTeamToPlay = await ask.getTeamBasedOpponentHistory(battleHistoryNew_one, newOpponentName, matchDetails);
+                                if(tempTeamToPlay && Object.keys(tempTeamToPlay).length != 0)
+                                {
+                                    console.log('Backup team to play: ', tempTeamToPlay);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    console.log('Backup team to play: ', tempTeamToPlay);
+                }
+            }
+
+
             let opponentCards = []
             const battleStartTime = new Date();
             var diff = 0
+
             console.log('Waiting for opponent cards....');
             while(diff < 80000)
             {
@@ -465,43 +505,7 @@ async function startBotPlayMatch(page, account, password) {
 
             if(opponentCards.length == 0)
             {
-                const battleHistory = await getOpponentBattleHistory(opponent);
-
-                if(battleHistory && battleHistory.length > 0)
-                {
-                    teamToPlay = await ask.getTeamBasedOpponentHistory(battleHistory, opponent, matchDetails);
-    
-                    if(teamToPlay === undefined || teamToPlay.length == 0)
-                    {
-                        // Extract the last two characters from opponent, and check if it's a bot and has another account
-                        // Increment the number by 1 above the current opponent
-                        var numberStr = opponent.substr(opponent.length - 2)
-                        if(!isNaN(numberStr))
-                        {
-                            var highNum = Math.ceil((parseInt(numberStr)+1)/10)*10;
-                            for(var x = (highNum-10); x < highNum; x++)
-                            {
-                                var numberName = String(x).padStart(2, '0');
-                                var newOpponentName =  opponent.slice(0, -2) + numberName
-    
-                                const battleHistoryNew_one = await getOpponentBattleHistory(newOpponentName);
-                                if(battleHistoryNew_one && battleHistoryNew_one.length > 0)
-                                {
-                                    teamToPlay = await ask.getTeamBasedOpponentHistory(battleHistoryNew_one, newOpponentName, matchDetails);
-                                    if(teamToPlay && Object.keys(teamToPlay).length != 0)
-                                    {
-                                        console.log('Play this team: ', teamToPlay);
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        console.log('Play this team: ', teamToPlay);
-                    }
-                }
+                teamToPlay = tempTeamToPlay;
             }
             else
             {
