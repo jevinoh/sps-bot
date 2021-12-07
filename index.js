@@ -490,7 +490,7 @@ async function startBotPlayMatch(page, account, password) {
             console.log('Waiting for opponent cards....');
             while(diff < 80000)
             {
-                opponentCards = await getOponnentCards('kevz19')
+                opponentCards = await getOponnentCards(opponent)
                 if(opponentCards.length != 0)
                 {
                     console.log('Opponent cards: ', opponentCards);
